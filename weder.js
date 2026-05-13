@@ -1,5 +1,48 @@
 const menuBtn = document.getElementById('menuBtn');
 const sidebar = document.getElementById('sidebar');
+let appSettings = JSON.parse(localStorage.getItem('wx_settings') || '{"lang":"id","unit":"c"}');
+let _pendingHighlightAnim = false;
+let _currentLoadSession = 0; // Anti-spam token
+
+// Function to update static UI labels dynamically
+function updateStaticLabels() {
+  const en = appSettings.lang === 'en';
+  
+  const lblLokasi = document.getElementById('lblLokasi');
+  if (lblLokasi) lblLokasi.textContent = en ? 'Locations' : 'Lokasi';
+  
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.placeholder = en ? 'Search city...' : 'Cari kota...';
+  
+  const lblPrakiraan = document.getElementById('lblPrakiraan');
+  if (lblPrakiraan) lblPrakiraan.textContent = en ? 'Forecast' : 'Prakiraan';
+  
+  const lblLimaHari = document.getElementById('lblLimaHari');
+  if (lblLimaHari) lblLimaHari.textContent = en ? '5-Day Forecast' : '5 Hari Kedepan';
+  
+  const lblUV = document.getElementById('lblUV');
+  if (lblUV) lblUV.textContent = en ? 'UV Index' : 'Indeks UV';
+  
+  const lblHujan = document.getElementById('lblHujan');
+  if (lblHujan) lblHujan.textContent = en ? 'Chance of Rain' : 'Peluang Hujan';
+  
+  const lblAI = document.getElementById('lblAI');
+  if (lblAI) lblAI.textContent = en ? 'AI Recommendations' : 'Rekomendasi dari AI';
+  
+  const lblTitle = document.getElementById('lblSettingsTitle');
+  if (lblTitle) lblTitle.textContent = en ? 'Settings' : 'Pengaturan';
+  
+  const lblLang = document.getElementById('lblLang');
+  if (lblLang) lblLang.textContent = en ? 'Language' : 'Bahasa';
+  
+  const lblUnit = document.getElementById('lblUnit');
+  if (lblUnit) lblUnit.textContent = en ? 'Temperature Unit' : 'Satuan Suhu';
+  
+  const btnLocText = document.getElementById('btnCheckLocText');
+  if (btnLocText && !btnLocText.classList.contains('changing')) {
+    btnLocText.textContent = en ? 'Check location permission' : 'Periksa izin lokasi';
+  }
+}
 
 if (sidebar && window.innerWidth <= 768) {
   sidebar.classList.remove('open');
@@ -7,26 +50,42 @@ if (sidebar && window.innerWidth <= 768) {
 
 if (menuBtn) {
   menuBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
+    if (!sidebar.classList.contains('open') && window.innerWidth <= 768) {
+      document.getElementById('searchInput').value = '';
+      showLocationList(true);
+      // Fade out main content first, then slide sidebar in
+      document.getElementById('mainEl').classList.add('content-blurred');
+      setTimeout(() => {
+        sidebar.classList.add('open');
+      }, 150);
+    } else {
+      sidebar.classList.remove('open');
+      document.getElementById('mainEl').classList.remove('content-blurred');
+    }
   });
 }
 
 if (sidebar) {
   sidebar.addEventListener('click', (e) => {
     const locationItem = e.target.closest('.location-item');
-    if (locationItem && window.innerWidth <= 768) {
+    if (!locationItem && e.target === sidebar && window.innerWidth <= 768) {
       sidebar.classList.remove('open');
+      document.getElementById('mainEl').classList.remove('content-blurred');
     }
   });
 }
 
+let _lastWinWidth = window.innerWidth;
 window.addEventListener('resize', () => {
-  if (window.innerWidth <= 768 && sidebar) {
-    sidebar.classList.remove('open');
+  if (window.innerWidth !== _lastWinWidth) {
+    _lastWinWidth = window.innerWidth;
+    if (window.innerWidth <= 768 && sidebar) {
+      sidebar.classList.remove('open');
+      document.getElementById('mainEl').classList.remove('content-blurred');
+    }
   }
 });
 
-// Redirect scroll events from the hero section to the cards wrapper (Hanya Desktop)
 const hero = document.querySelector('.hero');
 const cardsWrapper = document.querySelector('.cards-wrapper');
 
@@ -38,7 +97,6 @@ if (hero && cardsWrapper) {
   });
 }
 
-// Scroll Horizontal menggunakan wheel di area ramalan cuaca
 const forecastScroll = document.querySelector('.forecast-scroll-area');
 if (forecastScroll) {
   forecastScroll.addEventListener('wheel', (e) => {
@@ -58,7 +116,6 @@ const WeatherGL = (() => {
     void main() { v_uv = a_pos * 0.5 + 0.5; gl_Position = vec4(a_pos, 0.0, 1.0); }
   `;
 
-  // Iterasi dikurangi jadi 60
   const FRAG_HUJAN = `
     precision highp float;
     uniform float u_time; varying vec2 v_uv;
@@ -80,7 +137,6 @@ const WeatherGL = (() => {
     }
   `;
 
-  // Iterasi dikurangi jadi 50
   const FRAG_BADAI = `
     precision highp float;
     uniform float u_time; varying vec2 v_uv;
@@ -178,16 +234,30 @@ function getIconSvg(code) {
   return `<svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`;
 }
 
-const WMO_MAP = {
-  0:  ['Cerah', getIconSvg(0)], 1:  ['Cerah Berawan', getIconSvg(1)], 2:  ['Berawan Sebagian', getIconSvg(2)],
-  3:  ['Mendung', getIconSvg(3)], 45: ['Berkabut', getIconSvg(45)], 48: ['Berkabut Beku', getIconSvg(48)],
-  51: ['Gerimis Ringan', getIconSvg(51)], 53: ['Gerimis', getIconSvg(53)], 55: ['Gerimis Lebat', getIconSvg(55)],
-  61: ['Hujan Ringan', getIconSvg(61)], 63: ['Hujan', getIconSvg(63)], 65: ['Hujan Lebat', getIconSvg(65)],
-  71: ['Salju', getIconSvg(71)], 80: ['Hujan Lokal', getIconSvg(80)], 82: ['Hujan Lebat', getIconSvg(82)],
-  95: ['Hujan dan Petir', getIconSvg(95)], 99: ['Badai Hebat', getIconSvg(99)]
+const WMO_ID = {
+  0:  ['Cerah', 'Clear'],
+  1:  ['Cerah Berawan', 'Mostly Clear'],
+  2:  ['Berawan Sebagian', 'Partly Cloudy'],
+  3:  ['Mendung', 'Overcast'],
+  45: ['Berkabut', 'Foggy'],
+  48: ['Berkabut Beku', 'Icy Fog'],
+  51: ['Gerimis Ringan', 'Light Drizzle'],
+  53: ['Gerimis', 'Drizzle'],
+  55: ['Gerimis Lebat', 'Heavy Drizzle'],
+  61: ['Hujan Ringan', 'Light Rain'],
+  63: ['Hujan', 'Rain'],
+  65: ['Hujan Lebat', 'Heavy Rain'],
+  71: ['Salju', 'Snow'],
+  80: ['Hujan Lokal', 'Rain Showers'],
+  82: ['Hujan Lebat', 'Heavy Showers'],
+  95: ['Hujan dan Petir', 'Thunderstorm'],
+  99: ['Badai Hebat', 'Severe Thunderstorm']
 };
-function wmo(code) { return WMO_MAP[code] || ['Tidak Diketahui', getIconSvg(3)]; }
-
+function wmo(code) {
+  const entry = WMO_ID[code];
+  if (!entry) return [appSettings.lang === 'en' ? 'Unknown' : 'Tidak Diketahui', getIconSvg(3)];
+  return [entry[appSettings.lang === 'en' ? 1 : 0], getIconSvg(code)];
+}
 function getOverlayName(code) {
   if (code === 0 || code === 1) return 'cerah';
   if (code === 2) return 'sebagian';
@@ -215,26 +285,60 @@ function applyTheme(code, rain) {
 }
 
 function uvLabel(v) {
-  if (v <= 2) return 'Rendah'; if (v <= 5) return 'Sedang';
-  if (v <= 7) return 'Tinggi'; if (v <= 10) return 'Sangat Tinggi'; return 'Ekstrem';
+  const en = appSettings.lang === 'en';
+  if (v <= 2)  return en ? 'Low'       : 'Rendah';
+  if (v <= 5)  return en ? 'Moderate'  : 'Sedang';
+  if (v <= 7)  return en ? 'High'      : 'Tinggi';
+  if (v <= 10) return en ? 'Very High' : 'Sangat Tinggi';
+  return en ? 'Extreme' : 'Ekstrem';
 }
 function rainLabel(p) {
-  if (p < 20) return 'Kemungkinan kecil'; if (p < 50) return 'Mungkin terjadi';
-  if (p < 80) return 'Cukup tinggi'; return 'Sangat tinggi';
+  const en = appSettings.lang === 'en';
+  if (p < 20) return en ? 'Unlikely'      : 'Kemungkinan kecil';
+  if (p < 50) return en ? 'Possible'      : 'Mungkin terjadi';
+  if (p < 80) return en ? 'Likely'        : 'Cukup tinggi';
+  return en ? 'Very likely' : 'Sangat tinggi';
 }
-
 function aiRec(temp, rain, uv, cond) {
+  const en = appSettings.lang === 'en';
   const hasil = []; const rnd = Math.floor(Math.random() * 3);
-  if (rain >= 60) hasil.push(['Sangat mungkin terjadi hujan hari ini.', 'Curah hujan diprediksi cukup intens.', 'Peluang hujan lebat mendominasi hari ini.'][rnd]);
-  else if (rain >= 30) hasil.push(['Ada kemungkinan hujan, tetap waspada.', 'Gerimis berpeluang membasahi area Anda.', 'Sebaiknya bersiap untuk perubahan cuaca mendadak.'][rnd]);
-  else hasil.push(['Cuaca cenderung bersahabat hari ini.', 'Langit diprediksi cerah tanpa hujan berarti.', 'Kondisi langit cukup kondusif sepanjang hari.'][rnd]);
+  if (rain >= 60) hasil.push([
+    ['Sangat mungkin terjadi hujan hari ini.', 'Curah hujan diprediksi cukup intens.', 'Peluang hujan lebat mendominasi hari ini.'],
+    ['Heavy rain is very likely today.', 'Rainfall is expected to be quite intense.', 'High chance of heavy rain dominating the day.']
+  ][en?1:0][rnd]);
+  else if (rain >= 30) hasil.push([
+    ['Ada kemungkinan hujan, tetap waspada.', 'Gerimis berpeluang membasahi area Anda.', 'Sebaiknya bersiap untuk perubahan cuaca mendadak.'],
+    ['Some chance of rain, stay alert.', 'Drizzle may dampen your area.', 'Be prepared for sudden weather changes.']
+  ][en?1:0][rnd]);
+  else hasil.push([
+    ['Cuaca cenderung bersahabat hari ini.', 'Langit diprediksi cerah tanpa hujan berarti.', 'Kondisi langit cukup kondusif sepanjang hari.'],
+    ['Weather looks friendly today.', 'Skies are predicted clear with little rain.', 'Conditions are quite favorable throughout the day.']
+  ][en?1:0][rnd]);
 
-  if (rain >= 40) hasil.push(['Pastikan membawa payung agar tidak kehujanan.', 'Sedia jas hujan jika Anda akan bepergian keluar.', 'Lindungi barang berharga dari kemungkinan basah hujan.'][rnd]);
-  else if (uv >= 6) hasil.push(['Gunakan tabir surya jika beraktivitas di luar.', 'Sinar UV cukup menyengat, sangat disarankan pakai topi.', 'Hindari paparan sinar matahari langsung di terik siang.'][rnd]);
-  else if (temp >= 35) hasil.push(['Suhu ekstrem, perbanyak minum air putih.', 'Cuaca sangat panas, kurangi aktivitas fisik berat di luar.', 'Tetap berada di tempat teduh atau ruang ber-AC.'][rnd]);
-  else if (temp >= 30) hasil.push(['Cukup hangat, pastikan tubuh tetap terhidrasi.', 'Gunakan pakaian berbahan katun yang mudah menyerap keringat.', 'Minum air yang cukup untuk menjaga daya tahan tubuh.'][rnd]);
-  else if (cond.toLowerCase().includes('badai') || cond.toLowerCase().includes('petir')) hasil.push(['Hindari tempat terbuka saat badai berlangsung.', 'Cabut colokan elektronik yang tidak perlu demi keamanan.', 'Sebaiknya tetap berada di dalam bangunan yang aman.'][rnd]);
-  else hasil.push(['Kondisi udara cukup nyaman untuk beraktivitas.', 'Nikmati waktu Anda untuk bersantai di luar ruangan.', 'Suhu udara sangat mendukung untuk kegiatan harian Anda.'][rnd]);
+  if (rain >= 40) hasil.push([
+    ['Pastikan membawa payung agar tidak kehujanan.', 'Sedia jas hujan jika Anda akan bepergian keluar.', 'Lindungi barang berharga dari kemungkinan basah hujan.'],
+    ['Make sure to bring an umbrella.', 'Carry a raincoat if heading outside.', 'Protect valuables from possible rain.']
+  ][en?1:0][rnd]);
+  else if (uv >= 6) hasil.push([
+    ['Gunakan tabir surya jika beraktivitas di luar.', 'Sinar UV cukup menyengat, sangat disarankan pakai topi.', 'Hindari paparan sinar matahari langsung di terik siang.'],
+    ['Apply sunscreen if going outdoors.', 'UV is quite strong, wearing a hat is highly recommended.', 'Avoid direct sunlight during peak hours.']
+  ][en?1:0][rnd]);
+  else if (temp >= 35) hasil.push([
+    ['Suhu ekstrem, perbanyak minum air putih.', 'Cuaca sangat panas, kurangi aktivitas fisik berat di luar.', 'Tetap berada di tempat teduh atau ruang ber-AC.'],
+    ['Extreme heat, drink plenty of water.', 'Very hot weather, reduce heavy outdoor activity.', 'Stay in the shade or air-conditioned spaces.']
+  ][en?1:0][rnd]);
+  else if (temp >= 30) hasil.push([
+    ['Cukup hangat, pastikan tubuh tetap terhidrasi.', 'Gunakan pakaian berbahan katun yang mudah menyerap keringat.', 'Minum air yang cukup untuk menjaga daya tahan tubuh.'],
+    ['Quite warm, stay hydrated.', 'Wear light cotton clothing to absorb sweat.', 'Drink enough water to keep your energy up.']
+  ][en?1:0][rnd]);
+  else if (cond.toLowerCase().includes(en ? 'thunder' : 'badai') || cond.toLowerCase().includes(en ? 'storm' : 'petir')) hasil.push([
+    ['Hindari tempat terbuka saat badai berlangsung.', 'Cabut colokan elektronik yang tidak perlu demi keamanan.', 'Sebaiknya tetap berada di dalam bangunan yang aman.'],
+    ['Avoid open areas during the storm.', 'Unplug unnecessary electronics for safety.', 'Stay inside a safe building.']
+  ][en?1:0][rnd]);
+  else hasil.push([
+    ['Kondisi udara cukup nyaman untuk beraktivitas.', 'Nikmati waktu Anda untuk bersantai di luar ruangan.', 'Suhu udara sangat mendukung untuk kegiatan harian Anda.'],
+    ['Air conditions are comfortable for activity.', 'Enjoy some time relaxing outdoors.', 'Temperature is great for your daily activities.']
+  ][en?1:0][rnd]);
   return hasil;
 }
 
@@ -246,16 +350,19 @@ function getUvColor(v) {
 
 async function reverseGeocode(lat, lon) {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=id`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=${appSettings.lang}`);
     const data = await res.json();
-    return data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Lokasi Saya';
-  } catch { return 'Lokasi Saya'; }
+    return data.address?.city || data.address?.town || data.address?.village || data.address?.county || (appSettings.lang === 'en' ? 'My Location' : 'Lokasi Saya');
+  } catch { return appSettings.lang === 'en' ? 'My Location' : 'Lokasi Saya'; }
 }
 
 let savedLocations = JSON.parse(localStorage.getItem('wx_locs') || 'null');
 let activeIdx = parseInt(localStorage.getItem('wx_active') || '0');
+let weatherCache = JSON.parse(localStorage.getItem('wx_cache') || '{}');
+let _lastActiveIdx = activeIdx;
 
 async function init() {
+  updateStaticLabels();
   if (!savedLocations) {
     try {
       const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }));
@@ -280,14 +387,25 @@ async function fetchWeather(lat, lon) {
 }
 
 async function geocode(q) {
-  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=id&format=json`);
+  const lang = appSettings.lang === 'en' ? 'en' : 'id';
+  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${lang}&format=json`);
   const data = await res.json();
   return data.results || [];
 }
 
 function showLocationList(animate = false) {
   const list = document.getElementById('locationList');
-  
+
+  // seed temp/code/rain from cache for locations not yet fetched
+  savedLocations.forEach((loc, i) => {
+    if (loc.temp == null && weatherCache[i]) {
+      const d = weatherCache[i];
+      loc.temp = Math.round(d.current.temperature_2m);
+      loc.code = d.current.weathercode;
+      loc.rain = d.daily.precipitation_probability_max[0];
+    }
+  });
+
   if (animate) {
     list.classList.remove('animating'); 
     void list.offsetWidth; 
@@ -296,7 +414,11 @@ function showLocationList(animate = false) {
   
   list.innerHTML = '';
   savedLocations.forEach((loc, i) => {
-    const displayName = loc.name;
+    let displayName = loc.name;
+    if (displayName === 'Lokasi Saya' || displayName === 'My Location') {
+      displayName = appSettings.lang === 'en' ? 'My Location' : 'Lokasi Saya';
+    }
+
     const iconHtml = loc.code !== undefined ? getIconSvg(loc.code) : `<svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`;
     const overlayName = loc.code !== undefined ? getOverlayName(loc.code) : 'berawan';
 
@@ -314,17 +436,21 @@ function showLocationList(animate = false) {
     }
 
     const d = document.createElement('div');
-    d.className = 'location-item' + (i === activeIdx ? ' active' : '');
+    d.className = 'location-item' + (i === activeIdx ? ' active' + (i === activeIdx && i === _lastActiveIdx ? ' no-anim' : '') : '');
     d.setAttribute('style', bgStyle);
     d.innerHTML = `
       <div class="loc-bg-overlay" style="background-image: url('bgOverlay/${overlayName}-mini.png');"></div>
       <span class="location-icon">${iconHtml}</span>
       <div class="location-info">
         <div class="location-name">${displayName}</div>
-        <div class="location-temp">${loc.temp != null ? loc.temp + '°C' : '...'}</div>
+        <div class="location-temp">${loc.temp != null ? (appSettings.unit === 'f' ? Math.round(loc.temp * 9/5 + 32) : loc.temp) + (appSettings.unit === 'f' ? '°F' : '°C') : '...'}</div>
       </div>
       ${i > 0 ? `<span class="location-remove" onclick="removeLocation(event,${i})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>` : ''}
     `;
+    if (i === activeIdx && _pendingHighlightAnim) {
+      d.style.animation = 'highlightIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both';
+      _pendingHighlightAnim = false;
+    }
     d.addEventListener('click', () => switchLocation(i));
     list.appendChild(d);
   });
@@ -349,16 +475,28 @@ function saveLocs() {
 }
 
 async function switchLocation(i) {
-  activeIdx = i;
-  saveLocs();
-  showLocationList(false);
-  if (window.innerWidth <= 768) {
+  const isSame = (i === activeIdx);
+  const isMobile = window.innerWidth <= 768;
+
+  if (isMobile) {
     document.getElementById('sidebar').classList.remove('open');
   }
+
+  // If user clicks the currently active location on desktop/tablet, strictly ignore it to avoid spam.
+  if (isSame && !isMobile) {
+    return;
+  }
+
+  if (!isSame) {
+    _pendingHighlightAnim = true;
+    activeIdx = i;
+    saveLocs();
+    showLocationList(false);
+  }
+  
   await loadWeather(i);
 }
 
-// Fitur Loading menggunakan Class agar Hero/Topbar Blur Fade out
 function showLoading(aktif) {
   const el = document.getElementById('loadingOverlay');
   const main = document.getElementById('mainEl');
@@ -376,21 +514,22 @@ let _lastSearchResults = [];
 
 function showSearchResults(results, status) {
   const list = document.getElementById('locationList');
+  const en = appSettings.lang === 'en';
   list.classList.remove('animating'); void list.offsetWidth; list.classList.add('animating');
 
   if (status === 'searching') {
-    list.innerHTML = '<div class="search-status">Mencari lokasi...</div>';
+    list.innerHTML = `<div class="search-status">${en ? 'Searching location...' : 'Mencari lokasi...'}</div>`;
   } else if (status === 'empty') {
-    list.innerHTML = '<div class="search-status">Kota tidak ditemukan.</div>';
+    list.innerHTML = `<div class="search-status">${en ? 'City not found.' : 'Kota tidak ditemukan.'}</div>`;
   } else if (status === 'error') {
-    list.innerHTML = '<div class="search-status error-msg">Sistem gagal mencari lokasi.</div>';
+    list.innerHTML = `<div class="search-status">${en ? 'No internet connection.' : 'Tidak ada koneksi internet.'}</div>`;
   } else {
     const pinSvg = `<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
     list.innerHTML = results.map((r, i) => `
       <div class="search-result-item${i === 0 ? ' first-result' : ''}" onclick="pickResult(${i})">
         <div class="search-result-icon">${pinSvg}</div>
-        <div>
-          <div>${r.name}</div>
+        <div class="search-result-info">
+          <div class="search-result-name">${r.name}</div>
           <div class="search-result-sub">${[r.admin1, r.country_code].filter(Boolean).join(', ')}</div>
         </div>
       </div>
@@ -429,20 +568,22 @@ document.getElementById('searchInput').addEventListener('input', e => {
 function pickResult(idx) {
   const r = _lastSearchResults[idx];
   if (!r) return;
-  document.getElementById('searchInput').value = '';
   
+  // Clear search field
+  document.getElementById('searchInput').value = '';
+  showLocationList(true); 
+
   const existing = savedLocations.findIndex(l => Math.abs(l.lat - r.latitude) < 0.01 && Math.abs(l.lon - r.longitude) < 0.01);
   if (existing >= 0) {
     switchLocation(existing);
-    showLocationList(true);
-    return;
+    return; 
   }
-  
+
   savedLocations.push({ name: r.name, lat: r.latitude, lon: r.longitude });
   activeIdx = savedLocations.length - 1;
   saveLocs();
   showLocationList(true);
-  
+
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.remove('open');
   }
@@ -452,144 +593,194 @@ function pickResult(idx) {
 async function loadWeather(idx) {
   const loc = savedLocations[idx];
   if (!loc) return;
+  
+  const currentSession = ++_currentLoadSession; // Increment token
   showLoading(true);
 
+  let data;
   try {
-    const data = await fetchWeather(loc.lat, loc.lon);
-    const cur = data.current;
-    const daily = data.daily;
-    const hourly = data.hourly;
-
-    const temp = Math.round(cur.temperature_2m);
-    const code = cur.weathercode;
-    const [cond] = wmo(code);
-    const hiTemp = Math.round(daily.temperature_2m_max[0]);
-    const loTemp = Math.round(daily.temperature_2m_min[0]);
-    const uvIdx = Math.round(daily.uv_index_max[0]);
-    const rainProb = daily.precipitation_probability_max[0];
-
-    applyTheme(code, rainProb);
-    
-    const overlayName = getOverlayName(code);
-    const mainBg = document.getElementById('mainBgOverlay');
-    const isGlMode = overlayName === 'hujan' || code >= 95;
-    if (isGlMode) {
-      mainBg.style.backgroundImage = 'none';
-      WeatherGL.setMode(code >= 95 ? 'badai' : 'hujan');
-    } else {
-      WeatherGL.hide();
-      mainBg.style.backgroundImage = `url('bgOverlay/${overlayName}.png')`;
-    }
-
-    savedLocations[idx].temp = temp;
-    savedLocations[idx].code = code;
-    savedLocations[idx].rain = rainProb;
-    saveLocs();
-    
-    if (!document.getElementById('searchInput').value.trim()) {
-      showLocationList(false); 
-    }
-
-    const isCurrentLoc = (idx === 0);
-    document.getElementById('currentCity').textContent = loc.name; 
-    document.getElementById('topLocationIcon').style.display = isCurrentLoc ? 'block' : 'none';
-
-    document.getElementById('tempDisplay').textContent = temp + '°C';
-    document.getElementById('conditionText').textContent = cond;
-    document.getElementById('hiLoText').textContent = `↑ ${hiTemp}° / ↓ ${loTemp}°`;
-
-    document.getElementById('uvValue').textContent = uvLabel(uvIdx);
-    const uvPct = Math.min((uvIdx / 11) * 100, 100);
-    const dot = document.getElementById('uvDot');
-    dot.style.left = uvPct + '%'; dot.textContent = uvIdx;
-    dot.style.background = getUvColor(uvIdx); dot.classList.add('visible');
-
-    document.getElementById('rainValue').textContent = rainProb + '%';
-    document.getElementById('rainSub').textContent = rainLabel(rainProb);
-
-    const forecastRow = document.getElementById('forecastRow');
-    forecastRow.innerHTML = '';
-    const temps = [];
-
-    const currentApiTime = cur.time;
-    const currentApiHour = currentApiTime.substring(0, 13) + ":00";
-    
-    let si = hourly.time.indexOf(currentApiHour);
-    if (si < 0) si = 0;
-
-    hourly.time.slice(si, si + 12).forEach((t, ii) => {
-      const hi = si + ii; const hT = Math.round(hourly.temperature_2m[hi]);
-      const [, hIcon] = wmo(hourly.weathercode[hi]); const hH = t.substring(11, 16);
-      temps.push(hT);
-
-      const div = document.createElement('div');
-      div.className = 'forecast-item';
-      div.innerHTML = `<div class="forecast-time">${hH}</div><div class="forecast-icon">${hIcon}</div><div class="forecast-temp">${hT}°</div>`;
-      forecastRow.appendChild(div);
+    const fetchPromise = fetchWeather(loc.lat, loc.lon).then(d => {
+      weatherCache[idx] = d;
+      localStorage.setItem('wx_cache', JSON.stringify(weatherCache));
+      return d;
     });
 
-    const svg = document.getElementById('forecastChart');
-    if (temps.length > 1) {
-      const mn = Math.min(...temps); const mx = Math.max(...temps); const range = mx - mn || 1;
-      const itemW = 72; const W = temps.length * itemW; const H = 30, p = 6;
-      const pts = temps.map((t, i) => [(i * itemW) + (itemW / 2), H - p - ((t - mn) / range) * (H - 2 * p)]);
-      const dots = pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="var(--card-bg)" stroke-width="2"/>`).join('');
-      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      svg.innerHTML = `<polyline points="${pts.map(q => q.join(',')).join(' ')}" fill="none" stroke="#fcd34d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}`;
-    } else { svg.innerHTML = ''; }
-
-    const bul = document.getElementById('forecastBullets');
-    bul.innerHTML = '';
-    const rndIdx = Math.floor(Math.random() * 3);
-
-    if (code >= 95) {
-      const textPetir = ['Hujan lebat disertai petir berpotensi melanda hari ini.', 'Waspada potensi kilat dan badai petir di area Anda.', 'Kondisi rawan badai hari ini, amankan barang-barang luar.'];
-      bul.innerHTML += `<li><strong>${textPetir[rndIdx]}</strong></li>`;
-    } else if (rainProb >= 60) {
-      const textHujanLebat = ['Peluang hujan sangat kuat, sediakan alat pelindung hujan.', 'Hujan diprediksi akan turun cukup lebat.', 'Sebaiknya tunda kegiatan outdoor karena curah hujan tinggi.'];
-      bul.innerHTML += `<li><strong>${textHujanLebat[rndIdx]}</strong></li>`;
-    } else if (rainProb >= 30) {
-      const textHujanRingan = ['Hujan berpotensi turun di waktu mendatang.', 'Ada kemungkinan cuaca berubah menjadi gerimis.', 'Sedia payung sebelum hujan sebagai langkah antisipasi.'];
-      bul.innerHTML += `<li><strong>${textHujanRingan[rndIdx]}</strong></li>`;
-    } else {
-      const textCerah = ['Peluang hujan minim, cuaca relatif cerah hari ini.', 'Hari yang tepat untuk aktivitas luar ruangan.', 'Tampaknya tidak ada ancaman hujan dalam waktu dekat.'];
-      bul.innerHTML += `<li><strong>${textCerah[rndIdx]}</strong></li>`;
-    }
-    bul.innerHTML += `<li>Suhu akan bergerak di rentang ${loTemp}°C hingga puncaknya di ${hiTemp}°C.</li>`;
-
-    const rekomendasiList = aiRec(temp, rainProb, uvIdx, cond);
-    document.getElementById('aiBullets').innerHTML = rekomendasiList.map(r => `<li>${r}</li>`).join('');
-
-    const dailyWrapper = document.getElementById('dailyForecast');
-    dailyWrapper.innerHTML = '';
-    const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-
-    for (let i = 1; i <= 5; i++) {
-      const dDate = new Date(daily.time[i] + "T12:00:00");
-      const dayName = dayNames[dDate.getDay()];
-      const dMin = Math.round(daily.temperature_2m_min[i]);
-      const dMax = Math.round(daily.temperature_2m_max[i]);
-      const [, dIcon] = wmo(daily.weathercode[i]);
-
-      dailyWrapper.innerHTML += `
-        <div class="daily-row">
-          <div class="daily-day">${dayName}</div>
-          <div class="daily-icon">${dIcon}</div>
-          <div class="daily-temp">${dMax}° <span>${dMin}°</span></div>
-        </div>
-      `;
-    }
-
+    // Mobile: Wait slightly so sidebar animates out before we snap in new data
+    const delayPromise = window.innerWidth <= 768 ? new Promise(r => setTimeout(r, 350)) : Promise.resolve();
+    
+    const results = await Promise.all([
+      fetchPromise.catch(err => {
+        if (weatherCache[idx]) return weatherCache[idx];
+        throw err;
+      }), 
+      delayPromise
+    ]);
+    
+    if (currentSession !== _currentLoadSession) return; // Anti-spam check
+    
+    data = results[0];
   } catch (err) {
+    if (currentSession !== _currentLoadSession) return;
     console.error(err);
-    document.getElementById('conditionText').textContent = 'Koneksi terganggu.';
+    document.getElementById('conditionText').textContent = appSettings.lang === 'en' ? 'No internet connection.' : 'Tidak ada koneksi internet.';
     document.getElementById('tempDisplay').textContent = '—';
+    showLoading(false);
+    if (window.innerWidth <= 768) document.getElementById('mainEl').classList.remove('content-blurred');
+    return;
+  }
+
+  const cur = data.current;
+  const daily = data.daily;
+  const hourly = data.hourly;
+
+  const temp = Math.round(cur.temperature_2m);
+  const code = cur.weathercode;
+  const [cond] = wmo(code);
+  const hiTemp = Math.round(daily.temperature_2m_max[0]);
+  const loTemp = Math.round(daily.temperature_2m_min[0]);
+  const uvIdx = Math.round(daily.uv_index_max[0]);
+  const rainProb = daily.precipitation_probability_max[0];
+  const toDisplay = (t) => appSettings.unit === 'f' ? Math.round(t * 9/5 + 32) : t;
+  const unitSym = appSettings.unit === 'f' ? '°F' : '°C';
+
+  applyTheme(code, rainProb);
+  
+  const overlayName = getOverlayName(code);
+  const mainBg = document.getElementById('mainBgOverlay');
+  const isGlMode = overlayName === 'hujan' || code >= 95;
+  if (isGlMode) {
+    mainBg.style.backgroundImage = 'none';
+    WeatherGL.setMode(code >= 95 ? 'badai' : 'hujan');
+  } else {
+    WeatherGL.hide();
+    mainBg.style.backgroundImage = `url('bgOverlay/${overlayName}.png')`;
+  }
+
+  savedLocations[idx].temp = temp;
+  savedLocations[idx].code = code;
+  savedLocations[idx].rain = rainProb;
+  saveLocs();
+  
+  if (!document.getElementById('searchInput').value.trim()) {
+    showLocationList(false); 
+  }
+
+  const isCurrentLoc = (idx === 0);
+  let currentCityName = loc.name;
+  if (currentCityName === 'Lokasi Saya' || currentCityName === 'My Location') {
+    currentCityName = appSettings.lang === 'en' ? 'My Location' : 'Lokasi Saya';
+  }
+  document.getElementById('currentCity').textContent = currentCityName; 
+  document.getElementById('topLocationIcon').style.display = isCurrentLoc ? 'block' : 'none';
+
+  document.getElementById('tempDisplay').textContent = toDisplay(temp) + unitSym;
+  document.getElementById('conditionText').textContent = cond;
+  document.getElementById('hiLoText').textContent = `↑ ${toDisplay(hiTemp)}° / ↓ ${toDisplay(loTemp)}°`;
+
+  document.getElementById('uvValue').textContent = uvLabel(uvIdx);
+  const uvPct = Math.min((uvIdx / 11) * 100, 100);
+  const dot = document.getElementById('uvDot');
+  dot.style.left = uvPct + '%'; dot.textContent = uvIdx;
+  dot.style.background = getUvColor(uvIdx); dot.classList.add('visible');
+
+  document.getElementById('rainValue').textContent = rainProb + '%';
+  document.getElementById('rainSub').textContent = rainLabel(rainProb);
+
+  const forecastRow = document.getElementById('forecastRow');
+  forecastRow.innerHTML = '';
+  const temps = [];
+
+  const currentApiTime = cur.time;
+  const currentApiHour = currentApiTime.substring(0, 13) + ":00";
+  
+  let si = hourly.time.indexOf(currentApiHour);
+  if (si < 0) si = 0;
+
+  hourly.time.slice(si, si + 12).forEach((t, ii) => {
+    const hi = si + ii; const hT = toDisplay(Math.round(hourly.temperature_2m[hi]));
+    const [, hIcon] = wmo(hourly.weathercode[hi]); const hH = t.substring(11, 16);
+    temps.push(hT);
+
+    const div = document.createElement('div');
+    div.className = 'forecast-item';
+    div.innerHTML = `<div class="forecast-time">${hH}</div><div class="forecast-icon">${hIcon}</div><div class="forecast-temp">${hT}°</div>`;
+    forecastRow.appendChild(div);
+  });
+
+  const svg = document.getElementById('forecastChart');
+  if (temps.length > 1) {
+    const mn = Math.min(...temps); const mx = Math.max(...temps); const range = mx - mn || 1;
+    const itemW = 72; const W = temps.length * itemW; const H = 30, p = 6;
+    const pts = temps.map((t, i) => [(i * itemW) + (itemW / 2), H - p - ((t - mn) / range) * (H - 2 * p)]);
+    const dots = pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="var(--card-bg)" stroke-width="2"/>`).join('');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = `<polyline points="${pts.map(q => q.join(',')).join(' ')}" fill="none" stroke="#fcd34d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}`;
+  } else { svg.innerHTML = ''; }
+
+  const bul = document.getElementById('forecastBullets');
+  bul.innerHTML = '';
+  const en = appSettings.lang === 'en';
+  const rndIdx = Math.floor(Math.random() * 3);
+
+  if (code >= 95) {
+    const txt = en
+      ? ['Heavy rain with lightning may strike today.', 'Watch out for potential thunderstorms in your area.', 'Storm conditions today — secure outdoor items.']
+      : ['Hujan lebat disertai petir berpotensi melanda hari ini.', 'Waspada potensi kilat dan badai petir di area Anda.', 'Kondisi rawan badai hari ini, amankan barang-barang luar.'];
+    bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
+  } else if (rainProb >= 60) {
+    const txt = en
+      ? ['Very high chance of rain — bring protection.', 'Rain is predicted to be quite heavy.', 'Consider postponing outdoor plans due to high rainfall.']
+      : ['Peluang hujan sangat kuat, sediakan alat pelindung hujan.', 'Hujan diprediksi akan turun cukup lebat.', 'Sebaiknya tunda kegiatan outdoor karena curah hujan tinggi.'];
+    bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
+  } else if (rainProb >= 30) {
+    const txt = en
+      ? ['Rain may fall later in the day.', 'There is a chance of drizzle ahead.', 'Keep an umbrella handy just in case.']
+      : ['Hujan berpotensi turun di waktu mendatang.', 'Ada kemungkinan cuaca berubah menjadi gerimis.', 'Sedia payung sebelum hujan sebagai langkah antisipasi.'];
+    bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
+  } else {
+    const txt = en
+      ? ['Low chance of rain — mostly clear skies.', 'A great day for outdoor activities.', 'No significant rain threat in the near term.']
+      : ['Peluang hujan minim, cuaca relatif cerah hari ini.', 'Hari yang tepat untuk aktivitas luar ruangan.', 'Tampaknya tidak ada ancaman hujan dalam waktu dekat.'];
+    bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
+  }
+  bul.innerHTML += `<li>${en
+    ? `Temperatures will range from ${toDisplay(loTemp)}${unitSym} up to ${toDisplay(hiTemp)}${unitSym}.`
+    : `Suhu akan bergerak di rentang ${toDisplay(loTemp)}${unitSym} hingga puncaknya di ${toDisplay(hiTemp)}${unitSym}.`
+  }</li>`;
+
+  const rekomendasiList = aiRec(temp, rainProb, uvIdx, cond);
+  document.getElementById('aiBullets').innerHTML = rekomendasiList.map(r => `<li>${r}</li>`).join('');
+
+  const dailyWrapper = document.getElementById('dailyForecast');
+  dailyWrapper.innerHTML = '';
+  const dayNames = en 
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+  for (let i = 1; i <= 5; i++) {
+    const dDate = new Date(daily.time[i] + "T12:00:00");
+    const dayName = dayNames[dDate.getDay()];
+    const dMin = toDisplay(Math.round(daily.temperature_2m_min[i]));
+    const dMax = toDisplay(Math.round(daily.temperature_2m_max[i]));
+    const [, dIcon] = wmo(daily.weathercode[i]);
+
+    dailyWrapper.innerHTML += `
+      <div class="daily-row">
+        <div class="daily-day">${dayName}</div>
+        <div class="daily-icon">${dIcon}</div>
+        <div class="daily-temp">${dMax}° <span>${dMin}°</span></div>
+      </div>
+    `;
   }
 
   const cWrap = document.querySelector('.cards-wrapper');
   if (cWrap) cWrap.scrollTop = 0;
   const hWrap = document.querySelector('.hero');
   if (hWrap) hWrap.scrollTop = 0;
+
+  if (window.innerWidth <= 768) {
+    document.getElementById('mainEl').classList.remove('content-blurred');
+  }
 
   function triggerEnter(el) {
     if (!el) return;
@@ -601,6 +792,8 @@ async function loadWeather(idx) {
   triggerEnter(document.getElementById('rainCanvas'));
   triggerEnter(document.querySelector('.location-label'));
   triggerEnter(document.querySelector('.hero-left'));
+  // Menu button animates smoothly just like everything else
+  triggerEnter(document.getElementById('menuBtn'));
 
   const grid = document.querySelector('.cards-grid');
   if (grid) {
@@ -610,5 +803,103 @@ async function loadWeather(idx) {
 
   showLoading(false);
 }
+
+// ─── Settings Modal ─────────────────────────────────────────────────────────
+(function() {
+  const overlay   = document.getElementById('settingsModal');
+  const openBtn   = document.getElementById('settingsBtn');
+  const closeBtn  = document.getElementById('settingsClose');
+  const langSel   = document.getElementById('langSelect');
+  const unitSel   = document.getElementById('unitSelect');
+  const btnLoc    = document.getElementById('btnCheckLoc');
+  const contentWrap = document.getElementById('settingsContentWrap');
+
+  if (unitSel) unitSel.value = appSettings.unit;
+
+  function openSettings() {
+    if (!overlay) return;
+    overlay.classList.add('active');
+    document.body.classList.add('settings-open'); 
+    if (contentWrap) {
+      contentWrap.classList.remove('anim-in');
+      void contentWrap.offsetWidth;
+      contentWrap.classList.add('anim-in');
+    }
+  }
+
+  function closeSettings() {
+    if (!overlay) return;
+    document.body.classList.remove('settings-open'); 
+    if (contentWrap) {
+      contentWrap.classList.remove('anim-in');
+      contentWrap.classList.add('anim-out');
+    }
+    overlay.classList.remove('active');
+    setTimeout(() => {
+      if (contentWrap) contentWrap.classList.remove('anim-out');
+    }, 350);
+  }
+
+  if (openBtn)  openBtn.addEventListener('click', openSettings);
+  if (closeBtn) closeBtn.addEventListener('click', closeSettings);
+  if (overlay)  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSettings(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay && overlay.classList.contains('active')) closeSettings();
+  });
+
+  if (langSel) {
+    langSel.value = appSettings.lang;
+    langSel.addEventListener('change', (e) => {
+      appSettings.lang = e.target.value;
+      localStorage.setItem('wx_settings', JSON.stringify(appSettings));
+      updateStaticLabels();
+      if (savedLocations && savedLocations.length > 0) {
+        showLocationList(false);
+        loadWeather(activeIdx);
+      }
+    });
+  }
+
+  if (unitSel) {
+    unitSel.addEventListener('change', (e) => {
+      appSettings.unit = e.target.value;
+      localStorage.setItem('wx_settings', JSON.stringify(appSettings));
+      if (savedLocations && savedLocations.length > 0) { showLocationList(false); loadWeather(activeIdx); }
+    });
+  }
+
+  if (btnLoc) {
+    let _locTimer = null;
+    const btnLocText = document.getElementById('btnCheckLocText');
+    
+    function defaultLocLabel() {
+      return appSettings.lang === 'en' ? 'Check location permission' : 'Periksa izin lokasi';
+    }
+
+    function setBtnText(text) {
+      btnLocText.classList.add('changing');
+      setTimeout(() => { btnLocText.textContent = text; btnLocText.classList.remove('changing'); }, 300);
+    }
+
+    btnLoc.addEventListener('click', async () => {
+      if (btnLoc.disabled) return;
+      btnLoc.disabled = true;
+      const en = appSettings.lang === 'en';
+      clearTimeout(_locTimer);
+      try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        if (result.state === 'prompt') {
+          navigator.geolocation.getCurrentPosition(
+            () => { setBtnText(en ? 'Permission already granted' : 'Izin sudah diberikan'); _locTimer = setTimeout(() => { setBtnText(defaultLocLabel()); btnLoc.disabled = false; }, 3000); },
+            () => { setBtnText(en ? 'Permission was denied' : 'Izin ditolak sebelumnya'); _locTimer = setTimeout(() => { setBtnText(defaultLocLabel()); btnLoc.disabled = false; }, 3000); }
+          );
+          return;
+        }
+        setBtnText(result.state === 'granted' ? (en ? 'Permission already granted' : 'Izin sudah diberikan') : (en ? 'Permission was denied' : 'Izin ditolak sebelumnya'));
+      } catch { setBtnText('Error'); }
+      _locTimer = setTimeout(() => { setBtnText(defaultLocLabel()); btnLoc.disabled = false; }, 3000);
+    });
+  }
+})();
 
 init();
