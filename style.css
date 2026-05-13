@@ -7,6 +7,20 @@
   --card-subtext: #4A6A96;
   --sidebar-w: 320px;
 }
+@keyframes sidebarFadeUpBlur {
+  from { opacity: 0; filter: blur(12px); transform: translateY(16px); }
+  to   { opacity: 1; filter: blur(0px);  transform: translateY(0); }
+}
+
+@keyframes settingsFadeIn {
+  from { opacity: 0; filter: blur(12px); transform: translateY(16px); }
+  to   { opacity: 1; filter: blur(0px);  transform: translateY(0); }
+}
+@keyframes settingsFadeOut {
+  from { opacity: 1; filter: blur(0px);}
+  to   { opacity: 0; filter: blur(12px); }
+}
+
 @font-face {
   font-family: 'tgex';
   src: url('tgex.otf') format('opentype');
@@ -16,7 +30,6 @@
 }
 #currentCity { font-family: 'tgex'; margin-top: 5px; margin-left: 5px; }
 .card-title { font-family: 'tgex'; margin-top: 0px; margin-left: 2px; }
-/* .platform-darwin .card-title { margin-top: 4px; } */
 .card-title { margin-top: 4px; }
 .card-peluang { position: relative; top: -4px; }
 
@@ -43,7 +56,8 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   background: color-mix(in srgb, var(--bg-grad-top) 80%, #000);
   flex-shrink: 0; -webkit-app-region: drag;
-  z-index: 9999; transition: background 1.2s ease;
+  z-index: 9999; 
+  transition: background 1.2s ease, filter 0.35s ease, opacity 0.35s ease;
 }
 .win-drag-area { flex: 1; padding-left: 16px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 0.5px; -webkit-app-region: drag; }
 .win-controls { display: flex; -webkit-app-region: no-drag; }
@@ -51,12 +65,24 @@ body {
 .win-btn:hover { background: rgba(255,255,255,0.12); }
 .win-close:hover { background: #e81123 !important; color: #fff; }
 
-.app-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+/* --- DIM & BLUR SPECIFIC SECTIONS WHEN SETTINGS OPEN --- */
+.settings-overlay.active ~ * { pointer-events: none; }
+.app-body {
+  flex: 1; display: flex; overflow: hidden; min-height: 0;
+}
+/* Specifically targets the elements surrounding Settings Modal, to avoid blurring itself */
+body.settings-open .sidebar,
+body.settings-open .main,
+body.settings-open .win-titlebar {
+  opacity: 0.6;
+  filter: blur(12px) brightness(0.8);
+  pointer-events: none;
+}
 
 .sidebar {
   width: var(--sidebar-w); height: 100%;
   background: var(--sidebar-bg);
-  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 1.2s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 1.2s ease, filter 0.35s ease, opacity 0.35s ease;
   overflow: hidden; flex-shrink: 0; z-index: 100;
 }
 .sidebar:not(.open) { width: 0; }
@@ -65,14 +91,13 @@ body {
 .mac-traffic-spacer.fullscreen { height: 0; }
 .sidebar-header { padding: 32px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .platform-darwin .sidebar-header { padding-top: 16px; }
-.sidebar-title { font-weight: 700; font-family: 'tgex'; font-size: 18px; color: #fff; margin-bottom: 16px; letter-spacing: 0.3px; }
-
+.sidebar-title { font-weight: 700; font-family: 'tgex'; font-size: 20px; color: #fff; margin-bottom: 16px; letter-spacing: 0.3px; }
 .search-wrap { position: relative; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 14px; width: 14px; height: 14px; color: rgba(255, 255, 255, 0.6); pointer-events: none; }
 .search-input {
   flex: 1; background: rgba(255,255,255,0.12); border-radius: 12px;
-  padding: 10px 14px 10px 36px; color: #fff;
-  font-family: inherit; font-size: 14px; transition: background 0.3s;
+  padding: 11px 14px 11px 38px; color: #fff;
+  font-family: inherit; font-size: 15px; transition: background 0.3s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.45); }
 .search-input:focus { background: rgba(255,255,255,0.18); }
@@ -83,38 +108,96 @@ body {
 @keyframes listEnter { from { opacity: 0; filter: blur(8px); transform: scale(1.04); } to { opacity: 1; filter: blur(0px); transform: scale(1); } }
 .sidebar-list.animating { animation: listEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-.search-result-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; cursor: pointer; margin-bottom: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; font-weight: 500; transition: background 0.2s; }
+/* Match search-result item to location-item styling perfectly */
+.search-result-item { 
+  display: flex; align-items: center; gap: 12px; 
+  padding: 14px 16px; 
+  border-radius: 14px; 
+  cursor: pointer; 
+  margin-bottom: 12px; 
+  background: rgba(255,255,255,0.08); 
+  color: #fff; font-size: 13px; font-weight: 500; 
+  transition: background 0.2s; 
+}
 .search-result-item:hover { background: rgba(255,255,255,0.15); }
 .search-result-item.first-result { background: rgba(255,255,255,0.18); outline: 1px solid rgba(255,255,255,0.3); }
-.search-result-sub { font-size: 11px; color: rgba(255,255,255,0.55); font-weight: 400; margin-top: 2px; }
-.search-result-icon { flex-shrink: 0; width: 20px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.7); }
-.search-result-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.search-result-info { flex: 1; min-width: 0; }
+.search-result-name {
+  font-size: 15px; 
+  font-weight: 600; color: #fff; 
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+  margin-bottom: 3px;
+}
+.search-result-sub { 
+  font-size: 12px; color: rgba(255,255,255,0.6); 
+  font-weight: 400; margin-top: 0; 
+}
+
+.search-result-icon { 
+  flex-shrink: 0; width: 24px; 
+  display: flex; align-items: center; justify-content: center; 
+  color: rgba(255,255,255,0.7); 
+}
+.search-result-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
 .search-status { padding: 12px 0; text-align: center; font-size: 13px; color: rgba(255,255,255,0.6); }
 
-.location-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; cursor: pointer; margin-bottom: 12px; background: rgba(255,255,255,0.10); transition: background 0.3s, box-shadow 0.25s, outline-color 0.25s; position: relative; outline: 2px solid transparent; overflow: hidden; z-index: 1; }
-.loc-bg-overlay { position: absolute; inset: 0; opacity: 0.5; background-size: cover; background-position: center; pointer-events: none; z-index: -1; }
+.location-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; cursor: pointer; margin-bottom: 12px; background: rgba(255,255,255,0.10); transition: background 0.3s, box-shadow 0.25s, outline-color 0.25s; position: relative; outline: 2px solid transparent; overflow: hidden; z-index: 1; transition: background 0.3s, outline-color 0.5s ease, box-shadow 0.5s ease, backdrop-filter 0.5s ease; }
+.loc-bg-overlay {
+  position: absolute; inset: 0;
+  opacity: 0.3;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(2px);
+  transform: scale(1.04);
+  transition: opacity 0.5s ease, filter 0.5s ease;
+}
 .location-item:hover { background: rgba(255,255,255,0.16); }
-.location-item.active { outline: 2px solid rgba(255,255,255,0.85); outline-offset: 1px; }
+.location-item.active {
+  outline: 2.5px solid rgba(255,255,255,1);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.125);
+}
+
+@keyframes highlightIn {
+  from { outline-color: transparent; box-shadow: 0 0 0 0px rgba(255,255,255,0); }
+  to   { outline-color: rgba(255,255,255,0.95); box-shadow: 0 0 0 4px rgba(255,255,255,0.125); }
+}
 .location-icon, .location-info, .location-remove { position: relative; z-index: 2; }
-.location-icon { color: #fff; display: flex; align-items: center; width: 20px; justify-content: center; flex-shrink: 0; }
-.location-icon svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+.location-icon { color: #fff; display: flex; align-items: center; width: 24px; justify-content: center; flex-shrink: 0; }
+.location-icon svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
 .location-info { flex: 1; min-width: 0; }
-.location-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+.location-name { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
 .location-temp { font-size: 12px; color: rgba(255,255,255,0.6); }
 .location-remove { color: rgba(255,255,255,0.3); cursor: pointer; font-size: 16px; padding: 4px; transition: color 0.3s; }
 .location-remove:hover { color: rgba(255,255,255,0.85); }
-.error-msg { background: rgba(255,80,80,0.18); border-radius: 8px; padding: 10px; font-size: 12px; color: #fff; margin-top: 12px; text-align: center; }
 
 .main {
   flex: 1; min-width: 0;
   background: linear-gradient(160deg, var(--bg-grad-top) 0%, var(--bg-grad-bot) 100%);
   display: flex; flex-direction: column; overflow: hidden; position: relative;
-  transition: background 1.2s ease;
+  transition: filter 0.4s ease, opacity 0.4s ease, background 1.2s ease;
 }
+
+/* Animations added for seamless blur-fading (Fixed Safari flickering by enforcing base filters) */
+.hero-left, .cards-grid, .location-label, .bg-overlay, #rainCanvas, .menu-btn {
+  opacity: 1;
+  filter: blur(0px);
+  transition: opacity 0.35s ease, filter 0.35s ease;
+  will-change: opacity, filter, transform;
+}
+
+/* When applying entry animations, we MUST disable the CSS transition to prevent clashing/flickering */
+.entering {
+  transition: none !important;
+}
+
 .bg-overlay {
   position: absolute; inset: 0; opacity: 0.5;
   background-size: cover; background-position: center;
-  pointer-events: none; z-index: 1; transition: background-image 0.5s ease;
+  pointer-events: none; z-index: 1; transition: background-image 0.5s ease, opacity 0.35s ease, filter 0.35s ease;
 }
 #rainCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 
@@ -123,7 +206,6 @@ body {
 #rainCanvas.entering { animation-name: canvasEnter; }
 @keyframes canvasEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); } }
 
-/* TOP BAR BLUR GLOBAL (DESKTOP & MOBILE) */
 .top-bar {
   position: absolute; top: 0; left: 0; right: 0; flex-shrink: 0;
   display: flex; align-items: center; gap: 16px;
@@ -142,7 +224,6 @@ body {
 .menu-btn span { display: block; width: 24px; height: 2px; background: #fff; border-radius: 2px; }
 .location-label { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 600; color: #fff; -webkit-app-region: no-drag; }
 
-/* Desktop Hero & Cards */
 .hero {
   flex: 1; min-height: 0;
   padding: 0 48px 0; width: 100%; 
@@ -156,7 +237,7 @@ body {
 }
 .hero-left { 
   flex-shrink: 0; 
-  margin-bottom: 50px; /* Jarak Bawah Desktop Sesuai Update Permintaan */
+  margin-bottom: 50px;
 }
 .temp-display { font-family: 'Instrument Serif', serif; font-size: 100px; color: #fff; line-height: 0.9; margin-bottom: 12px; letter-spacing: -2px; font-weight: 400; }
 .condition { font-size: 20px; font-weight: 400; color: #fff; margin-bottom: 8px; }
@@ -175,7 +256,6 @@ body {
   gap: 16px; align-items: end;
 }
 
-/* Glassmorphism di Cards TEPAT SEPERTI TEST.HTML */
 .card {
   background: var(--card-bg); 
   backdrop-filter: blur(24px); 
@@ -240,10 +320,9 @@ body {
 .ai-bullets li { font-size: 13px; color: var(--card-subtext); padding-left: 14px; position: relative; line-height: 1.4; }
 .ai-bullets li::before { content: '·'; position: absolute; left: 0; color: var(--card-text); font-size: 26px; top: -7px; font-weight: bold; }
 
-/* Loading UI yang juga dikombinasikan dengan Blur Fade */
 .loading-overlay {
   position: absolute; inset: 0;
-  background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent); /* Sedikit gelap agar blur terlihat nyata */
+  background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent);
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   z-index: 150; opacity: 0; pointer-events: none; 
   transition: opacity 0.4s ease;
@@ -255,7 +334,7 @@ body {
 @keyframes cardEnter { from { opacity: 0; filter: blur(12px); transform: scale(1.06); } to { opacity: 1; filter: blur(0px); transform: scale(1); } }
 
 .hero-left.entering { animation: contentEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.location-label.entering { animation: topBarEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.location-label.entering, .menu-btn.entering { animation: topBarEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .cards-grid.entering .card { animation: cardEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .cards-grid.entering .card:nth-child(1) { animation-delay: 0ms; }
 .cards-grid.entering .card:nth-child(2) { animation-delay: 60ms; }
@@ -263,10 +342,7 @@ body {
 .cards-grid.entering .card:nth-child(4) { animation-delay: 180ms; }
 .cards-grid.entering .card:nth-child(5) { animation-delay: 240ms; }
 
-
-/* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
-  /* Blur Fade Sidebar Khusus Mobile (Blur 1.5x lipat = 36px) */
   .sidebar { 
     width: 100vw !important; 
     position: fixed; top: 0; left: 0; z-index: 200;
@@ -277,6 +353,24 @@ body {
   }
   .sidebar.open { opacity: 1; visibility: visible; pointer-events: all; }
   .sidebar-inner { width: 100vw; background: transparent; }
+  
+  .sidebar.open .sidebar-inner {
+    animation: sidebarFadeUpBlur 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* When sidebar is interacted with in mobile, ALL elements gracefully fade/blur out */
+  .main.content-blurred .hero-left,
+  .main.content-blurred .cards-grid,
+  .main.content-blurred .location-label,
+  .main.content-blurred .bg-overlay,
+  .main.content-blurred #rainCanvas,
+  .main.content-blurred .menu-btn {
+    opacity: 0 !important;
+    filter: blur(12px) !important;
+  }
+  .main.content-blurred {
+    pointer-events: none;
+  }
   
   .menu-btn { display: flex; }
   
@@ -292,31 +386,48 @@ body {
   
   .hero-content {
     display: flex; flex-direction: column;
-    align-items: center; /* Memusatkan semua child agar sejalan di tengah */
+    align-items: center;
     justify-content: flex-start;
     gap: 0; width: 100%;
   }
   
-  /* Max width 336px persis sama dengan total lebar cards grid. Margin auto meletakkannya tepat di tengah bersisian dengan Cards */
   .hero-left { 
     width: 100%; max-width: 336px;
-    margin: 20vh auto 50px auto; /* Margin-left & right otomatis mengikuti spacing cards */
+    margin: 20vh auto 50px auto; 
     align-self: center; 
   }
   
   .cards-wrapper { 
     width: 100%;
     display: flex; justify-content: center; 
-    padding: 0; overflow: visible; 
+    padding: 0 0 40px 0; /* <--- Adds 40px space at the bottom */
+    overflow: visible; 
+  }
+
+  /* Stop the background from double-dimming */
+  body.settings-open .sidebar,
+  body.settings-open .main,
+  body.settings-open .win-titlebar {
+    opacity: 1;
+    filter: none;
+  }
+
+  /* Let the settings overlay handle all the blurring beautifully */
+  .settings-overlay {
+    /* background: rgba(0, 0, 0, 0.3) !important; Smooth, slight dim */
+    backdrop-filter: blur(16px) !important; 
+    -webkit-backdrop-filter: blur(16px) !important;
   }
   
   .cards-grid { 
-    /* Lebarnya biarkan natural, otomatis jadi 336px diatur oleh wrapper-nya */
     transform-origin: top center; 
+  }
+  .settings-overlay {
+    background: color-mix(in srgb, var(--bg-grad-top) 60%, transparent);
+    backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
   }
 }
 
-/* Saat layar mulai di bawah 380px */
 @media (max-width: 380px) {
   .cards-wrapper {
     transform-origin: top center;
@@ -325,7 +436,6 @@ body {
   }
 }
 
-/* Saat layar makin mengecil di bawah 360px */
 @media (max-width: 360px) {
   .cards-wrapper {
     transition: transform 0.25s ease-out;
@@ -333,7 +443,6 @@ body {
   }
 }
 
-/* Saat layar HP super sempit di bawah 340px */
 @media (max-width: 340px) {
   .cards-wrapper {
     transition: transform 0.25s ease-out;
@@ -341,7 +450,6 @@ body {
   }
 }
 
-/* Paling mentok di bawah 320px */
 @media (max-width: 320px) {
   .cards-wrapper {
     transition: transform 0.25s ease-out;
@@ -349,10 +457,70 @@ body {
   }
 }
 
-
 @media (min-width: 769px) {
   .sidebar { width: var(--sidebar-w) !important; }
   .sidebar:not(.open) { width: var(--sidebar-w) !important; }
   .sidebar.open { width: var(--sidebar-w); }
   .menu-btn { display: none !important; }
+}
+
+.settings-btn { background: none; color: rgba(255,255,255,0.7); cursor: pointer; transition: color 0.3s, transform 0.3s; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 100%; }
+.settings-btn:hover { color: #fff; background: rgba(255,255,255,0.1); transform: rotate(45deg); }
+
+.settings-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: linear-gradient(160deg, var(--bg-grad-top) 0%, var(--bg-grad-bot) 100%);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
+}
+.settings-overlay.active { pointer-events: all; opacity: 1; }
+.settings-content-wrap.anim-in {
+  animation: settingsFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.settings-content-wrap.anim-out {
+  animation: settingsFadeOut 0.35s cubic-bezier(0.4, 0, 1, 1) both;
+}
+.settings-card {
+   width: 100%; max-width: 320px;
+   background: transparent !important;
+   backdrop-filter: none; -webkit-backdrop-filter: none;
+   border-radius: 0; border: none; padding: 24px;
+ }
+.settings-overlay.active .settings-card { transform: translateY(0) scale(1); }
+
+.settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
+.settings-header .card-title { font-size: 20px; color: #fff; margin: 0; font-weight: 600; }
+.settings-close { background: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; border-radius: 8px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+.settings-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+.setting-item { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.setting-item label { font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 500; }
+.settings-select {
+  background: rgba(255,255,255,0.12); color: #fff; border-radius: 12px;
+  padding: 10px 14px; font-family: inherit; font-size: 14px;
+  appearance: none; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.3s;
+}
+.settings-select:focus { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
+.settings-select option { background: #1a2a40; color: #fff; }
+
+.settings-btn-action {
+  background: rgba(255,255,255,0.15); color: #fff; border-radius: 12px;
+  padding: 10px 14px; font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.3s; margin-top: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.settings-btn-action:hover { background: rgba(255,255,255,0.25); }
+.loc-status { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 6px; font-weight: 500; }
+
+.settings-content-wrap {
+  width: 100%;
+}
+#btnCheckLocText {
+  display: inline-block;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+#btnCheckLocText.changing {
+  opacity: 0.25;
+  filter: blur(5px);
 }
