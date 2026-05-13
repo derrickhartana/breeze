@@ -65,18 +65,9 @@ body {
 .win-btn:hover { background: rgba(255,255,255,0.12); }
 .win-close:hover { background: #e81123 !important; color: #fff; }
 
-/* --- DIM & BLUR SPECIFIC SECTIONS WHEN SETTINGS OPEN --- */
 .settings-overlay.active ~ * { pointer-events: none; }
 .app-body {
   flex: 1; display: flex; overflow: hidden; min-height: 0;
-}
-/* Specifically targets the elements surrounding Settings Modal, to avoid blurring itself */
-body.settings-open .sidebar,
-body.settings-open .main,
-body.settings-open .win-titlebar {
-  opacity: 0.6;
-  filter: blur(12px) brightness(0.8);
-  pointer-events: none;
 }
 
 .sidebar {
@@ -108,7 +99,6 @@ body.settings-open .win-titlebar {
 @keyframes listEnter { from { opacity: 0; filter: blur(8px); transform: scale(1.04); } to { opacity: 1; filter: blur(0px); transform: scale(1); } }
 .sidebar-list.animating { animation: listEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Match search-result item to location-item styling perfectly */
 .search-result-item { 
   display: flex; align-items: center; gap: 12px; 
   padding: 14px 16px; 
@@ -181,15 +171,11 @@ body.settings-open .win-titlebar {
   transition: filter 0.4s ease, opacity 0.4s ease, background 1.2s ease;
 }
 
-/* Animations added for seamless blur-fading (Fixed Safari flickering by enforcing base filters) */
+/* Removed the filter lock to restore glassmorphism background blur safely */
 .hero-left, .cards-grid, .location-label, .bg-overlay, #rainCanvas, .menu-btn {
   opacity: 1;
-  filter: blur(0px);
   transition: opacity 0.35s ease, filter 0.35s ease;
-  will-change: opacity, filter, transform;
 }
-
-/* When applying entry animations, we MUST disable the CSS transition to prevent clashing/flickering */
 .entering {
   transition: none !important;
 }
@@ -358,7 +344,6 @@ body.settings-open .win-titlebar {
     animation: sidebarFadeUpBlur 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* When sidebar is interacted with in mobile, ALL elements gracefully fade/blur out */
   .main.content-blurred .hero-left,
   .main.content-blurred .cards-grid,
   .main.content-blurred .location-label,
@@ -400,31 +385,12 @@ body.settings-open .win-titlebar {
   .cards-wrapper { 
     width: 100%;
     display: flex; justify-content: center; 
-    padding: 0 0 40px 0; /* <--- Adds 40px space at the bottom */
+    padding: 0 0 40px 0; /* Padding bottom specifically for mobile as requested */
     overflow: visible; 
-  }
-
-  /* Stop the background from double-dimming */
-  body.settings-open .sidebar,
-  body.settings-open .main,
-  body.settings-open .win-titlebar {
-    opacity: 1;
-    filter: none;
-  }
-
-  /* Let the settings overlay handle all the blurring beautifully */
-  .settings-overlay {
-    /* background: rgba(0, 0, 0, 0.3) !important; Smooth, slight dim */
-    backdrop-filter: blur(16px) !important; 
-    -webkit-backdrop-filter: blur(16px) !important;
   }
   
   .cards-grid { 
     transform-origin: top center; 
-  }
-  .settings-overlay {
-    background: color-mix(in srgb, var(--bg-grad-top) 60%, transparent);
-    backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
   }
 }
 
@@ -467,9 +433,11 @@ body.settings-open .win-titlebar {
 .settings-btn { background: none; color: rgba(255,255,255,0.7); cursor: pointer; transition: color 0.3s, transform 0.3s; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 100%; }
 .settings-btn:hover { color: #fff; background: rgba(255,255,255,0.1); transform: rotate(45deg); }
 
+/* Settings fully handles its own background blur, cleanly isolating the effect */
 .settings-overlay {
   position: fixed; inset: 0; z-index: 999;
-  background: linear-gradient(160deg, var(--bg-grad-top) 0%, var(--bg-grad-bot) 100%);
+  background: rgba(0, 0, 0, 0.45); 
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center;
   pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
 }
