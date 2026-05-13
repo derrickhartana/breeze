@@ -31,7 +31,15 @@
     <div class="mac-traffic-spacer" id="macSpacer" style="display:none;"></div>
 
     <div class="sidebar-header">
-      <div class="sidebar-title">Lokasi</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div class="sidebar-title" id="lblLokasi" style="margin-bottom: 0;">Lokasi</div>
+        <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
       
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,9 +56,7 @@
 
 <div class="main" id="mainEl">
   
-  <!-- Loading UI Solid Fade murni -->
   <div class="loading-overlay" id="loadingOverlay"></div>
-  
   <div class="bg-overlay" id="mainBgOverlay"></div>
   <canvas id="rainCanvas"></canvas>
 
@@ -81,7 +87,7 @@
           <div class="card card-forecast">
             <div class="card-label">
               <svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
-              <text class="card-title">Prakiraan</text>
+              <text class="card-title" id="lblPrakiraan">Prakiraan</text>
             </div>
             <div class="forecast-wrapper">
               <div class="forecast-scroll-area">
@@ -102,7 +108,7 @@
                 <line x1="8" y1="2" x2="8" y2="6"></line>
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
-              <text class="card-title">5 Hari Kedepan</text>
+              <text class="card-title" id="lblLimaHari">5 Hari Kedepan</text>
             </div>
             <div class="daily-wrapper" id="dailyForecast"></div>
           </div>
@@ -120,7 +126,7 @@
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
               </svg>
-              <text class="card-title">Indeks UV</text>
+              <text class="card-title" id="lblUV">Indeks UV</text>
             </div>
             <div class="uv-wrapper">
               <div class="uv-value" id="uvValue">—</div>
@@ -136,7 +142,7 @@
               <svg class="stroke-only" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M16 13v8M8 13v8M12 15v8M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>
               </svg>
-              <text class="card-title">Peluang Hujan</text>
+              <text class="card-title" id="lblHujan">Peluang Hujan</text>
             </div>
             <div class="rain-wrapper">
               <div class="rain-value" id="rainValue">—%</div>
@@ -147,11 +153,45 @@
           <div class="card card-ai">
             <div class="card-label">
               <svg viewBox="0 0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1.177-7.86l-2.765-2.767L7 12.431l3.118 3.121a1 1 0 0 0 1.414 0l5.952-5.95-1.062-1.062-5.6 5.6z"/></svg>
-              <text class="card-title">Rekomendasi dari AI</text>
+              <text class="card-title" id="lblAI">Rekomendasi dari AI</text>
             </div>
             <ul class="ai-bullets" id="aiBullets"></ul>
           </div>
 
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay" id="settingsModal">
+  <div class="settings-card card" id="settingsCard">
+    <div class="settings-content-wrap" id="settingsContentWrap">
+      <div class="settings-header">
+        <h2 class="card-title" id="lblSettingsTitle">Pengaturan</h2>
+        <button class="settings-close" id="settingsClose" aria-label="Close settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-item">
+          <label id="lblLang">Bahasa / Language</label>
+          <select id="langSelect" class="settings-select">
+            <option value="id">Indonesia</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label id="lblUnit">Satuan Suhu / Temp Unit</label>
+          <select id="unitSelect" class="settings-select">
+            <option value="c">Celsius (°C)</option>
+            <option value="f">Fahrenheit (°F)</option>
+          </select>
+        </div>
+        <div class="setting-item" style="margin-top: 8px;">
+          <button class="settings-btn-action" id="btnCheckLoc">
+            <span id="btnCheckLocText">Periksa Izin Lokasi</span>
+          </button>
         </div>
       </div>
     </div>
@@ -166,6 +206,8 @@
       document.body.classList.add('platform-' + platform)
       if (platform === 'darwin') {
         document.getElementById('macSpacer').style.display = 'block'
+        const sb = document.getElementById('settingsBtn')
+        if (sb) sb.style.display = 'none'
       } else if (platform === 'win32' || platform === 'linux') {
         document.getElementById('winTitlebar').style.display = 'flex'
       }
@@ -176,6 +218,11 @@
       document.getElementById('macSpacer').classList.toggle('fullscreen', isFs)
     })
   }
+  if (window.electronAPI && window.electronAPI.onSettings) {
+  window.electronAPI.onSettings(function() {
+    document.getElementById('settingsBtn').click()
+  })
+}
 </script>
 </body>
 </html>
