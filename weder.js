@@ -210,7 +210,8 @@ const WeatherGL = (() => {
   }
   function loop() {
     raf = requestAnimationFrame(loop); 
-    if (!gl || !curProg || canvas.style.display === 'none') return;
+    // GANTI: Pengecekan display menjadi visibility
+    if (!gl || !curProg || canvas.style.visibility === 'hidden') return;
     gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(curProg);
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf); gl.enableVertexAttribArray(curProg._aPos);
     gl.vertexAttribPointer(curProg._aPos, 2, gl.FLOAT, false, 0, 0);
@@ -218,10 +219,12 @@ const WeatherGL = (() => {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
   function setMode(name) {
-    if (!initGL()) return; canvas.style.display = 'block'; curProg = getProg(name); if (!raf) loop();
+    // GANTI: display: block menjadi visibility: visible
+    if (!initGL()) return; canvas.style.visibility = 'visible'; curProg = getProg(name); if (!raf) loop();
   }
   function hide() {
-    if (canvas) canvas.style.display = 'none'; if (raf) { cancelAnimationFrame(raf); raf = null; } curProg = null;
+    // GANTI: display: none menjadi visibility: hidden
+    if (canvas) canvas.style.visibility = 'hidden'; if (raf) { cancelAnimationFrame(raf); raf = null; } curProg = null;
   }
   return { setMode, hide };
 })();
@@ -281,7 +284,6 @@ function applyTheme(code, rain) {
   const r = document.documentElement.style;
   r.setProperty('--bg-grad-top', top); r.setProperty('--bg-grad-bot', bot);
   r.setProperty('--card-bg', cardBg); r.setProperty('--card-text', cardTxt); r.setProperty('--card-subtext', cardSub);
-  document.getElementById('mainEl').style.background = `linear-gradient(160deg, ${top} 0%, ${bot} 100%)`;
 }
 
 function uvLabel(v) {
@@ -381,9 +383,20 @@ async function init() {
 
 async function fetchWeather(lat, lon) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,precipitation_probability,uv_index&hourly=temperature_2m,weathercode,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,weathercode,uv_index_max,precipitation_probability_max&timezone=auto&forecast_days=6`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Gagal mengambil data cuaca');
-  return res.json();
+  
+  // Batas waktu 10 detik agar tidak stuck
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId); // Bersihkan timeout jika sukses
+    if (!res.ok) throw new Error('Gagal mengambil data cuaca');
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err; // Lempar error agar ditangkap & loading diselesaikan
+  }
 }
 
 async function geocode(q) {
@@ -590,11 +603,39 @@ function pickResult(idx) {
   loadWeather(activeIdx);
 }
 
+// Fungsi bantuan untuk animasi yang konsisten
+function triggerEnter(el) {
+  if (!el) return;
+  el.classList.remove('exiting'); // Bersihkan status keluar
+  el.classList.remove('entering'); 
+  void el.offsetWidth; // Force reflow
+  el.classList.add('entering');
+  el.addEventListener('animationend', () => el.classList.remove('entering'), { once: true });
+}
+
+function triggerExit(el) {
+  if (!el) return;
+  el.classList.remove('entering'); // Hentikan paksa jika sedang masuk
+  el.classList.remove('exiting');
+  void el.offsetWidth; // Force reflow
+  el.classList.add('exiting');
+}
+
 async function loadWeather(idx) {
   const loc = savedLocations[idx];
   if (!loc) return;
   
-  const currentSession = ++_currentLoadSession; // Increment token
+  const currentSession = ++_currentLoadSession; // Anti-spam token
+
+  // Eksekusi Animasi Keluar
+  triggerExit(document.getElementById('mainBgOverlay'));
+  triggerExit(document.getElementById('rainCanvas'));
+  triggerExit(document.querySelector('.location-label'));
+  triggerExit(document.querySelector('.hero-left'));
+  triggerExit(document.getElementById('menuBtn'));
+  triggerExit(document.querySelector('.cards-grid'));
+  triggerExit(document.getElementById('mainEl'));
+
   showLoading(true);
 
   let data;
@@ -605,8 +646,8 @@ async function loadWeather(idx) {
       return d;
     });
 
-    // Mobile: Wait slightly so sidebar animates out before we snap in new data
-    const delayPromise = window.innerWidth <= 768 ? new Promise(r => setTimeout(r, 350)) : Promise.resolve();
+    // Tunggu animasi Exiting selesai (sekitar 450ms)
+    const delayPromise = new Promise(r => setTimeout(r, 450));
     
     const results = await Promise.all([
       fetchPromise.catch(err => {
@@ -616,16 +657,17 @@ async function loadWeather(idx) {
       delayPromise
     ]);
     
-    if (currentSession !== _currentLoadSession) return; // Anti-spam check
+    if (currentSession !== _currentLoadSession) return;
     
     data = results[0];
   } catch (err) {
     if (currentSession !== _currentLoadSession) return;
-    console.error(err);
     document.getElementById('conditionText').textContent = appSettings.lang === 'en' ? 'No internet connection.' : 'Tidak ada koneksi internet.';
     document.getElementById('tempDisplay').textContent = '—';
     showLoading(false);
-    if (window.innerWidth <= 768) document.getElementById('mainEl').classList.remove('content-blurred');
+    if (window.innerWidth <= 768 && !document.getElementById('sidebar').classList.contains('open')) {
+      document.getElementById('mainEl').classList.remove('content-blurred');
+    }
     return;
   }
 
@@ -692,7 +734,6 @@ async function loadWeather(idx) {
 
   const currentApiTime = cur.time;
   const currentApiHour = currentApiTime.substring(0, 13) + ":00";
-  
   let si = hourly.time.indexOf(currentApiHour);
   if (si < 0) si = 0;
 
@@ -700,7 +741,6 @@ async function loadWeather(idx) {
     const hi = si + ii; const hT = toDisplay(Math.round(hourly.temperature_2m[hi]));
     const [, hIcon] = wmo(hourly.weathercode[hi]); const hH = t.substring(11, 16);
     temps.push(hT);
-
     const div = document.createElement('div');
     div.className = 'forecast-item';
     div.innerHTML = `<div class="forecast-time">${hH}</div><div class="forecast-icon">${hIcon}</div><div class="forecast-temp">${hT}°</div>`;
@@ -724,12 +764,12 @@ async function loadWeather(idx) {
 
   if (code >= 95) {
     const txt = en
-      ? ['Heavy rain with lightning may strike today.', 'Watch out for potential thunderstorms in your area.', 'Storm conditions today — secure outdoor items.']
+      ? ['Heavy rain with lightning may strike today.', 'Watch out for potential thunderstorms in your area.', 'Storm conditions today; secure outdoor items.']
       : ['Hujan lebat disertai petir berpotensi melanda hari ini.', 'Waspada potensi kilat dan badai petir di area Anda.', 'Kondisi rawan badai hari ini, amankan barang-barang luar.'];
     bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
   } else if (rainProb >= 60) {
     const txt = en
-      ? ['Very high chance of rain — bring protection.', 'Rain is predicted to be quite heavy.', 'Consider postponing outdoor plans due to high rainfall.']
+      ? ['Very high chance of rain; bring protection.', 'Rain is predicted to be quite heavy.', 'Consider postponing outdoor plans due to high rainfall.']
       : ['Peluang hujan sangat kuat, sediakan alat pelindung hujan.', 'Hujan diprediksi akan turun cukup lebat.', 'Sebaiknya tunda kegiatan outdoor karena curah hujan tinggi.'];
     bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
   } else if (rainProb >= 30) {
@@ -739,23 +779,18 @@ async function loadWeather(idx) {
     bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
   } else {
     const txt = en
-      ? ['Low chance of rain — mostly clear skies.', 'A great day for outdoor activities.', 'No significant rain threat in the near term.']
+      ? ['Low chance of rain; mostly clear skies.', 'A great day for outdoor activities.', 'No significant rain threat in the near term.']
       : ['Peluang hujan minim, cuaca relatif cerah hari ini.', 'Hari yang tepat untuk aktivitas luar ruangan.', 'Tampaknya tidak ada ancaman hujan dalam waktu dekat.'];
     bul.innerHTML += `<li><strong>${txt[rndIdx]}</strong></li>`;
   }
-  bul.innerHTML += `<li>${en
-    ? `Temperatures will range from ${toDisplay(loTemp)}${unitSym} up to ${toDisplay(hiTemp)}${unitSym}.`
-    : `Suhu akan bergerak di rentang ${toDisplay(loTemp)}${unitSym} hingga puncaknya di ${toDisplay(hiTemp)}${unitSym}.`
-  }</li>`;
+  bul.innerHTML += `<li>${en ? `Temperatures will range from ${toDisplay(loTemp)}${unitSym} up to ${toDisplay(hiTemp)}${unitSym}.` : `Suhu akan bergerak di rentang ${toDisplay(loTemp)}${unitSym} hingga puncaknya di ${toDisplay(hiTemp)}${unitSym}.`}</li>`;
 
   const rekomendasiList = aiRec(temp, rainProb, uvIdx, cond);
   document.getElementById('aiBullets').innerHTML = rekomendasiList.map(r => `<li>${r}</li>`).join('');
 
   const dailyWrapper = document.getElementById('dailyForecast');
   dailyWrapper.innerHTML = '';
-  const dayNames = en 
-    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    : ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  const dayNames = en ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
   for (let i = 1; i <= 5; i++) {
     const dDate = new Date(daily.time[i] + "T12:00:00");
@@ -782,24 +817,13 @@ async function loadWeather(idx) {
     document.getElementById('mainEl').classList.remove('content-blurred');
   }
 
-  function triggerEnter(el) {
-    if (!el) return;
-    el.classList.remove('entering'); void el.offsetWidth; el.classList.add('entering');
-    el.addEventListener('animationend', () => el.classList.remove('entering'), { once: true });
-  }
-
+  // Eksekusi Animasi Masuk
   triggerEnter(document.getElementById('mainBgOverlay'));
   triggerEnter(document.getElementById('rainCanvas'));
   triggerEnter(document.querySelector('.location-label'));
   triggerEnter(document.querySelector('.hero-left'));
-  // Menu button animates smoothly just like everything else
   triggerEnter(document.getElementById('menuBtn'));
-
-  const grid = document.querySelector('.cards-grid');
-  if (grid) {
-    grid.classList.remove('entering'); void grid.offsetWidth; grid.classList.add('entering');
-    grid.addEventListener('animationend', () => grid.classList.remove('entering'), { once: true });
-  }
+  triggerEnter(document.querySelector('.cards-grid'));
 
   showLoading(false);
 }
@@ -809,12 +833,10 @@ async function loadWeather(idx) {
   const overlay   = document.getElementById('settingsModal');
   const openBtn   = document.getElementById('settingsBtn');
   const closeBtn  = document.getElementById('settingsClose');
-  const langSel   = document.getElementById('langSelect');
-  const unitSel   = document.getElementById('unitSelect');
+  const langSel   = document.getElementById('langCustomSelect');
+  const unitSel   = document.getElementById('unitCustomSelect');
   const btnLoc    = document.getElementById('btnCheckLoc');
   const contentWrap = document.getElementById('settingsContentWrap');
-
-  if (unitSel) unitSel.value = appSettings.unit;
 
   function openSettings() {
     if (!overlay) return;
@@ -835,6 +857,7 @@ async function loadWeather(idx) {
       contentWrap.classList.add('anim-out');
     }
     overlay.classList.remove('active');
+    document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('open'));
     setTimeout(() => {
       if (contentWrap) contentWrap.classList.remove('anim-out');
     }, 350);
@@ -847,24 +870,106 @@ async function loadWeather(idx) {
     if (e.key === 'Escape' && overlay && overlay.classList.contains('active')) closeSettings();
   });
 
+  // Custom Dropdown Setup
+  function setupCustomSelect(el, currentVal, onChange) {
+    if (!el) return;
+    const trigger = el.querySelector('.select-trigger');
+    const label = el.querySelector('.select-label');
+    const options = el.querySelectorAll('.select-option');
+
+    function setValue(val) {
+      el.setAttribute('data-value', val);
+      options.forEach(o => {
+        if (o.getAttribute('data-value') === val) {
+          o.classList.add('selected');
+          label.textContent = o.textContent;
+        } else {
+          o.classList.remove('selected');
+        }
+      });
+    }
+
+    setValue(currentVal);
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = el.classList.contains('open');
+      document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('open'));
+      if (!isOpen) el.classList.add('open');
+    });
+
+    options.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = opt.getAttribute('data-value');
+        setValue(val);
+        el.classList.remove('open');
+        onChange(val);
+      });
+    });
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('open'));
+  });
+
+// Jadi ini:
+  function langBlurTransition(callback) {
+    const items = document.querySelectorAll(
+      '.settings-header .card-title, .settings-body label, .settings-body .select-trigger, .settings-body .settings-btn-action'
+    );
+    items.forEach(el => {
+      el.style.transition = 'opacity 0.2s ease, filter 0.2s ease';
+      el.style.opacity = '0';
+      el.style.filter = 'blur(8px)';
+    });
+    setTimeout(() => {
+      callback();
+      requestAnimationFrame(() => {
+        items.forEach(el => {
+          el.style.transition = 'opacity 0.3s ease, filter 0.3s ease';
+          el.style.opacity = '';
+          el.style.filter = '';
+          setTimeout(() => { el.style.transition = ''; }, 300);
+        });
+      });
+    }, 220);
+  }
+
   if (langSel) {
-    langSel.value = appSettings.lang;
-    langSel.addEventListener('change', (e) => {
-      appSettings.lang = e.target.value;
-      localStorage.setItem('wx_settings', JSON.stringify(appSettings));
-      updateStaticLabels();
-      if (savedLocations && savedLocations.length > 0) {
-        showLocationList(false);
-        loadWeather(activeIdx);
-      }
+    setupCustomSelect(langSel, appSettings.lang, (val) => {
+      langBlurTransition(() => {
+        appSettings.lang = val;
+        localStorage.setItem('wx_settings', JSON.stringify(appSettings));
+        updateStaticLabels();
+        // Sync label dropdown setelah bahasa berubah
+        const langLabel = langSel.querySelector('.select-label');
+        if (langLabel) langLabel.textContent = val === 'en' ? 'English' : 'Indonesia';
+        if (unitSel) {
+          const unitLabel = unitSel.querySelector('.select-label');
+          if (unitLabel) unitLabel.textContent = appSettings.unit === 'f' ? 'Fahrenheit (°F)' : 'Celsius (°C)';
+        }
+        if (savedLocations && savedLocations.length > 0) {
+          showLocationList(false);
+          if (window.innerWidth > 768 || !document.getElementById('sidebar').classList.contains('open')) {
+            loadWeather(activeIdx);
+          }
+        }
+      });
     });
   }
 
   if (unitSel) {
-    unitSel.addEventListener('change', (e) => {
-      appSettings.unit = e.target.value;
+    setupCustomSelect(unitSel, appSettings.unit, (val) => {
+      appSettings.unit = val;
       localStorage.setItem('wx_settings', JSON.stringify(appSettings));
-      if (savedLocations && savedLocations.length > 0) { showLocationList(false); loadWeather(activeIdx); }
+      if (savedLocations && savedLocations.length > 0) {
+        showLocationList(false);
+        if (window.innerWidth > 768 || !document.getElementById('sidebar').classList.contains('open')) {
+          loadWeather(activeIdx);
+        }
+      }
     });
   }
 
