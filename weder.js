@@ -4,6 +4,20 @@ let appSettings = JSON.parse(localStorage.getItem('wx_settings') || '{"lang":"id
 let _pendingHighlightAnim = false;
 let _currentLoadSession = 0; // Anti-spam token
 
+function applyTheme(code, rain) {
+  const [top, bot, cardBg, cardTxt, cardSub] = weatherTheme(code, rain);
+  const r = document.documentElement.style;
+  r.setProperty('--bg-grad-top', top);
+  r.setProperty('--bg-grad-bot', bot);
+  r.setProperty('--card-bg', cardBg);
+  r.setProperty('--card-text', cardTxt);
+  r.setProperty('--card-subtext', cardSub);
+  
+  // Tambah ini:
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute('content', top);
+}
+
 // Function to update static UI labels dynamically
 function updateStaticLabels() {
   const en = appSettings.lang === 'en';
