@@ -46,6 +46,20 @@
 }
 input { user-select: auto; -webkit-user-select: auto; }
 
+html { background-color: var(--bg-grad-bot);}
+
+/* Creates a background block locked behind the top status bar area */
+html::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: env(safe-area-inset-top, 48px); /* Scales dynamically with phone notches */
+  background-color: var(--bg-grad-top);
+  z-index: -1; /* Ensures it stays behind your app content */
+}
+
 html, body {
   width: 100%; height: 100%; overflow: hidden;
   touch-action: pan-y; -webkit-tap-highlight-color: transparent;
