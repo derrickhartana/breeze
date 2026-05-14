@@ -6,6 +6,8 @@
 <title>Breeze</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link href="./style.css" rel="stylesheet">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 
@@ -164,6 +166,8 @@
   </div>
 </div>
 
+</div>
+
 <div class="settings-overlay" id="settingsModal">
   <div class="settings-card card" id="settingsCard">
     <div class="settings-content-wrap" id="settingsContentWrap">
@@ -174,30 +178,44 @@
         </button>
       </div>
       <div class="settings-body">
+        
         <div class="setting-item">
           <label id="lblLang">Bahasa / Language</label>
-          <select id="langSelect" class="settings-select">
-            <option value="id">Indonesia</option>
-            <option value="en">English</option>
-          </select>
+          <div class="custom-select" id="langCustomSelect">
+            <div class="select-trigger">
+              <span class="select-label">Indonesia</span>
+              <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="select-options">
+              <div class="select-option" data-value="id">Indonesia</div>
+              <div class="select-option" data-value="en">English</div>
+            </div>
+          </div>
         </div>
+
         <div class="setting-item">
           <label id="lblUnit">Satuan Suhu / Temp Unit</label>
-          <select id="unitSelect" class="settings-select">
-            <option value="c">Celsius (°C)</option>
-            <option value="f">Fahrenheit (°F)</option>
-          </select>
+          <div class="custom-select" id="unitCustomSelect">
+            <div class="select-trigger">
+              <span class="select-label">Celsius (°C)</span>
+              <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="select-options">
+              <div class="select-option" data-value="c">Celsius (°C)</div>
+              <div class="select-option" data-value="f">Fahrenheit (°F)</div>
+            </div>
+          </div>
         </div>
+
         <div class="setting-item" style="margin-top: 8px;">
           <button class="settings-btn-action" id="btnCheckLoc">
-            <span id="btnCheckLocText">Periksa Izin Lokasi</span>
+            <span id="btnCheckLocText">Periksa izin lokasi</span>
           </button>
         </div>
+
       </div>
     </div>
   </div>
-</div>
-
 </div>
 <script src="./weder.js"></script>
 <script>
