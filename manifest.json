@@ -2,6 +2,7 @@
   "name": "Breeze",
   "short_name": "Breeze",
   "start_url": "/breeze/",
+  "scope": "/breeze/",
   "display": "standalone",
   "background_color": "#1359C5",
   "theme_color": "#1359C5",
