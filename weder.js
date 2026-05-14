@@ -4,16 +4,19 @@ let appSettings = JSON.parse(localStorage.getItem('wx_settings') || '{"lang":"id
 let _pendingHighlightAnim = false;
 let _currentLoadSession = 0; // Anti-spam token
 
-function syncDeviceThemeTags() {
-  const rootStyles = getComputedStyle(document.documentElement);
-  const gradTopValue = rootStyles.getPropertyValue('--bg-grad-top').trim();
+function applyTheme(code, rain) {
+  const [top, bot, cardBg, cardTxt, cardSub] = weatherTheme(code, rain);
+  const r = document.documentElement.style;
+  r.setProperty('--bg-grad-top', top); 
+  r.setProperty('--bg-grad-bot', bot);
+  r.setProperty('--card-bg', cardBg); 
+  r.setProperty('--card-text', cardTxt); 
+  r.setProperty('--card-subtext', cardSub);
   
-  const metaTag = document.getElementById('native-theme-meta');
-  if (metaTag && gradTopValue) {
-    // Sets the browser frame block to precisely match the top of your gradient
-    metaTag.setAttribute('content', gradTopValue);
-  }
+  // ADD THIS LINE: Sync status bar color dynamically when weather changes
+  syncDeviceThemeTags();
 }
+
 
 // Fire when document layers settle
 window.addEventListener('DOMContentLoaded', syncDeviceThemeTags);
