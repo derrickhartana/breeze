@@ -1,3 +1,4 @@
+/* Tambah di :root: */
 :root {
   --bg-grad-top: #1359C5;
   --bg-grad-bot: #7EB9F1;
@@ -6,19 +7,24 @@
   --card-text: #0a2d63;
   --card-subtext: #4A6A96;
   --sidebar-w: 320px;
+  transition: --bg-grad-top 1.2s ease, --bg-grad-bot 1.2s ease;
 }
+
+.platform-win32 .main, .platform-linux .main { border-radius: 0; }
+.platform-win11 .main { border-radius: 12px 0 0 0px; }
+
 @keyframes sidebarFadeUpBlur {
   from { opacity: 0; filter: blur(12px); transform: translateY(16px); }
-  to   { opacity: 1; filter: blur(0px);  transform: translateY(0); }
+  to   { opacity: 1; filter: none; transform: none; }
 }
 
 @keyframes settingsFadeIn {
   from { opacity: 0; filter: blur(12px); transform: translateY(16px); }
-  to   { opacity: 1; filter: blur(0px);  transform: translateY(0); }
+  to   { opacity: 1; filter: none; transform: none; }
 }
 @keyframes settingsFadeOut {
-  from { opacity: 1; filter: blur(0px);}
-  to   { opacity: 0; filter: blur(12px); }
+  from { opacity: 1; filter: none; transform: none; }
+  to   { opacity: 0; filter: blur(12px); transform: translateY(16px); }
 }
 
 @font-face {
@@ -42,22 +48,21 @@ input { user-select: auto; -webkit-user-select: auto; }
 
 html, body {
   width: 100%; height: 100%; overflow: hidden;
-  background: var(--bg-grad-top);
   touch-action: pan-y; -webkit-tap-highlight-color: transparent;
 }
 body {
   font-family: 'Instrument Sans', sans-serif;
   display: flex; flex-direction: column;
-  background: linear-gradient(160deg, var(--bg-grad-top) 0%, var(--bg-grad-bot) 100%);
+  background: color-mix(in srgb, var(--bg-grad-top) 75%, #000);
 }
 
 .win-titlebar {
   width: 100%; height: 36px;
   display: flex; align-items: center; justify-content: space-between;
-  background: color-mix(in srgb, var(--bg-grad-top) 80%, #000);
+  background: color-mix(in srgb, var(--bg-grad-top) 75%, #000);
   flex-shrink: 0; -webkit-app-region: drag;
   z-index: 9999; 
-  transition: background 1.2s ease, filter 0.35s ease, opacity 0.35s ease;
+  transition: background 1.2s ease, --bg-grad-top 1.2s ease, --bg-grad-bot 1.2s ease, filter 0.35s ease, opacity 0.35s ease;
 }
 .win-drag-area { flex: 1; padding-left: 16px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 0.5px; -webkit-app-region: drag; }
 .win-controls { display: flex; -webkit-app-region: no-drag; }
@@ -73,7 +78,7 @@ body {
 .sidebar {
   width: var(--sidebar-w); height: 100%;
   background: var(--sidebar-bg);
-  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 1.2s ease, filter 0.35s ease, opacity 0.35s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 1.2s ease, --bg-grad-top 1.2s ease, --bg-grad-bot 1.2s ease, filter 0.35s ease, opacity 0.35s ease;
   overflow: hidden; flex-shrink: 0; z-index: 100;
 }
 .sidebar:not(.open) { width: 0; }
@@ -96,7 +101,7 @@ body {
 .sidebar-list { flex: 1; overflow-y: auto; padding: 24px; -ms-overflow-style: none; scrollbar-width: none; }
 .sidebar-list::-webkit-scrollbar { display: none; }
 
-@keyframes listEnter { from { opacity: 0; filter: blur(8px); transform: scale(1.04); } to { opacity: 1; filter: blur(0px); transform: scale(1); } }
+@keyframes listEnter { from { opacity: 0; filter: blur(8px); transform: scale(1.04); } to { opacity: 1; filter: none; transform: none; } }
 .sidebar-list.animating { animation: listEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .search-result-item { 
@@ -132,7 +137,7 @@ body {
 .search-result-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
 .search-status { padding: 12px 0; text-align: center; font-size: 13px; color: rgba(255,255,255,0.6); }
 
-.location-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; cursor: pointer; margin-bottom: 12px; background: rgba(255,255,255,0.10); transition: background 0.3s, box-shadow 0.25s, outline-color 0.25s; position: relative; outline: 2px solid transparent; overflow: hidden; z-index: 1; transition: background 0.3s, outline-color 0.5s ease, box-shadow 0.5s ease, backdrop-filter 0.5s ease; }
+.location-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; cursor: pointer; margin-bottom: 12px; background: rgba(255,255,255,0.10); transition: background 0.3s, box-shadow 0.25s, outline-color 0.25s; position: relative; outline: 2px solid transparent; overflow: hidden; z-index: 1; }
 .loc-bg-overlay {
   position: absolute; inset: 0;
   opacity: 0.3;
@@ -171,26 +176,27 @@ body {
   transition: filter 0.4s ease, opacity 0.4s ease, background 1.2s ease;
 }
 
-/* Removed the filter lock to restore glassmorphism background blur safely */
-.hero-left, .cards-grid, .location-label, .bg-overlay, #rainCanvas, .menu-btn {
-  opacity: 1;
-  transition: opacity 0.35s ease, filter 0.35s ease;
-}
-.entering {
-  transition: none !important;
-}
+.entering { transition: none !important; }
 
 .bg-overlay {
   position: absolute; inset: 0; opacity: 0.5;
   background-size: cover; background-position: center;
-  pointer-events: none; z-index: 1; transition: background-image 0.5s ease, opacity 0.35s ease, filter 0.35s ease;
+  pointer-events: none; z-index: 1; 
+  /* Pastikan ada 'transform' di dalam transisi ini */
+  transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease, background-image 0.5s ease;
 }
-#rainCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+#rainCanvas { 
+  position: absolute; inset: 0; width: 100%; height: 100%; 
+  pointer-events: none; z-index: 1; 
+  /* Harus ditambahkan transisi secara eksplisit di sini */
+  transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
+}
 
 .bg-overlay.entering, #rainCanvas.entering { animation: overlayEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes overlayEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 0.5; filter: blur(0px); transform: scale(1) translateY(0); } }
+@keyframes overlayEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 0.5; filter: none; transform: none; } }
 #rainCanvas.entering { animation-name: canvasEnter; }
-@keyframes canvasEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); } }
+@keyframes canvasEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 1; filter: none; transform: none; } }
 
 .top-bar {
   position: absolute; top: 0; left: 0; right: 0; flex-shrink: 0;
@@ -279,9 +285,9 @@ body {
 .forecast-chart { width: 100%; height: 30px; overflow: visible; }
 
 .forecast-bullets { list-style: none; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
-.forecast-bullets li { font-size: 13px; color: var(--card-subtext); padding-left: 14px; position: relative; line-height: 1.5; margin-bottom: 6px; }
-.forecast-bullets li::before { content: '▪'; position: absolute; left: 0; color: var(--card-text); }
-.forecast-bullets li strong { color: var(--card-text); font-weight: 600; }
+.forecast-bullets li { font-size: 13px; color: var(--card-subtext); padding-left: 14px; position: relative; line-height: 1.4; margin-bottom: 6px; }
+.forecast-bullets li::before { content: '·'; position: absolute; left: 0; color: var(--card-text); font-size: 26px; top: -7px; font-weight: 400; font-family: 'Instrument Sans'; }
+.forecast-bullets li strong { color: var(--card-text); font-weight: 400; font-family: 'Instrument Sans'; }
 
 .daily-wrapper { display: flex; flex-direction: column; }
 .daily-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 14px; color: var(--card-text); }
@@ -304,20 +310,21 @@ body {
 
 .ai-bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .ai-bullets li { font-size: 13px; color: var(--card-subtext); padding-left: 14px; position: relative; line-height: 1.4; }
-.ai-bullets li::before { content: '·'; position: absolute; left: 0; color: var(--card-text); font-size: 26px; top: -7px; font-weight: bold; }
+.ai-bullets li::before { content: '·'; position: absolute; left: 0; color: var(--card-text); font-size: 26px; top: -7px; font-weight: 400; font-family: 'Instrument Sans'; }
 
 .loading-overlay {
   position: absolute; inset: 0;
-  background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-  z-index: 150; opacity: 0; pointer-events: none; 
+  z-index: 150; pointer-events: none;
+  background: rgba(0, 0, 0, 0.1); /* Hanya warna gelap transparan yang tipis */
+  opacity: 0; 
   transition: opacity 0.4s ease;
 }
-.loading-overlay.active { opacity: 1; pointer-events: all; }
-
-@keyframes contentEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); } }
-@keyframes topBarEnter { from { opacity: 0; filter: blur(8px); transform: translateY(-8px); } to { opacity: 1; filter: blur(0px); transform: translateY(0); } }
-@keyframes cardEnter { from { opacity: 0; filter: blur(12px); transform: scale(1.06); } to { opacity: 1; filter: blur(0px); transform: scale(1); } }
+.loading-overlay.active { 
+  opacity: 1; pointer-events: all; 
+}
+@keyframes contentEnter { from { opacity: 0; filter: blur(10px); transform: scale(1.04) translateY(6px); } to { opacity: 1; filter: none; transform: none; } }
+@keyframes topBarEnter { from { opacity: 0; filter: blur(8px); transform: translateY(-8px); } to { opacity: 1; filter: none; transform: none; } }
+@keyframes cardEnter { from { opacity: 0; filter: blur(12px); transform: scale(1.06); } to { opacity: 1; filter: none; transform: none; } }
 
 .hero-left.entering { animation: contentEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .location-label.entering, .menu-btn.entering { animation: topBarEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -328,40 +335,106 @@ body {
 .cards-grid.entering .card:nth-child(4) { animation-delay: 180ms; }
 .cards-grid.entering .card:nth-child(5) { animation-delay: 240ms; }
 
+/* =========================================
+   OVERRIDE TRANSISI GLOBAL (FADE & BLUR)
+   ========================================= */
+
+/* 1. Pastikan semua elemen punya transisi yang aktif secara paksa */
+.hero-left, .cards-grid, .location-label, .bg-overlay, #rainCanvas, .menu-btn {
+  transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease !important;
+}
+
+/* 2. Saat Loading: UI (Teks, Kartu, Label) memudar dan mundur ke belakang */
+.main.content-blurred .hero-left,
+.main.content-blurred .cards-grid,
+.main.content-blurred .location-label,
+.main.content-blurred .menu-btn,
+.main.is-loading .hero-left,
+.main.is-loading .cards-grid,
+.main.is-loading .location-label,
+.main.is-loading .menu-btn {
+  opacity: 0 !important;
+  filter: blur(12px) !important;
+  transform: scale(0.97) !important;
+}
+
+/* 3. Saat Loading: Background (Awan & Hujan) memudar tapi membesar (zoom in) agar blur tidak bocor */
+.main.content-blurred .bg-overlay,
+.main.content-blurred #rainCanvas,
+.main.is-loading .bg-overlay,
+.main.is-loading #rainCanvas {
+  opacity: 0 !important;
+  filter: blur(16px) !important;
+  transform: scale(1.06) !important;
+}
+
+/* 4. Matikan interaksi/klik saat elemen sedang buram/hilang */
+.main.content-blurred,
+.main.is-loading {
+  pointer-events: none;
+}
+
+.top-bar {
+  padding: calc(24px + env(safe-area-inset-top)) 24px 16px;
+}
+.top-bar::before {
+  top: calc(-1 * env(safe-area-inset-top));
+}
+.sidebar-header {
+  padding-top: calc(32px + env(safe-area-inset-top));
+}
 @media (max-width: 768px) {
+
+  @keyframes sidebarFadeMobile {
+  from { opacity: 0; filter: blur(12px); transform: scale(1.02); }
+  to   { opacity: 1; filter: none; transform: scale(1); }
+}
   .sidebar { 
     width: 100vw !important; 
     position: fixed; top: 0; left: 0; z-index: 200;
     background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent); 
     backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
     opacity: 0; visibility: hidden; pointer-events: none;
-    transition: opacity 0.4s ease, visibility 0.4s;
+    filter: blur(12px); /* Ditambah blur */
+    transition: opacity 0.4s ease, visibility 0.4s, filter 0.4s ease; /* Ditambah transisi filter */
   }
-  .sidebar.open { opacity: 1; visibility: visible; pointer-events: all; }
+  .sidebar.open { 
+    opacity: 1; visibility: visible; pointer-events: all; 
+    filter: blur(0); /* Hilangkan blur saat aktif */
+  }
   .sidebar-inner { width: 100vw; background: transparent; }
   
-  .sidebar.open .sidebar-inner {
-    animation: sidebarFadeUpBlur 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
+    .sidebar.open .sidebar-inner {
+      animation: sidebarFadeUpBlur 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
 
-  .main.content-blurred .hero-left,
-  .main.content-blurred .cards-grid,
-  .main.content-blurred .location-label,
-  .main.content-blurred .bg-overlay,
-  .main.content-blurred #rainCanvas,
-  .main.content-blurred .menu-btn {
-    opacity: 0 !important;
-    filter: blur(12px) !important;
-  }
-  .main.content-blurred {
-    pointer-events: none;
-  }
+  /* Efek Fade + Blur global saat loading atau sidebar terbuka */
+.main.content-blurred .hero-left,
+.main.content-blurred .cards-grid,
+.main.content-blurred .location-label,
+.main.content-blurred .bg-overlay,
+.main.content-blurred #rainCanvas,
+.main.content-blurred .menu-btn,
+.main.is-loading .hero-left,
+.main.is-loading .cards-grid,
+.main.is-loading .location-label,
+.main.is-loading .bg-overlay,
+.main.is-loading #rainCanvas,
+.main.is-loading .menu-btn {
+  opacity: 0 !important;
+  filter: blur(12px) !important;
+}
+
+.main.content-blurred,
+.main.is-loading {
+  pointer-events: none;
+}
   
   .menu-btn { display: flex; }
   
   .top-bar {
     position: fixed; top: 0; left: 0; right: 0;
-    padding: 24px 24px 16px; background: transparent;
+    background: transparent;
   }
   
   .hero {
@@ -385,7 +458,7 @@ body {
   .cards-wrapper { 
     width: 100%;
     display: flex; justify-content: center; 
-    padding: 0 0 40px 0; /* Padding bottom specifically for mobile as requested */
+    padding: 0 0 40px 0; 
     overflow: visible; 
   }
   
@@ -401,26 +474,14 @@ body {
     transform: scale(0.95);
   }
 }
-
 @media (max-width: 360px) {
-  .cards-wrapper {
-    transition: transform 0.25s ease-out;
-    transform: scale(0.90);
-  }
+  .cards-wrapper { transition: transform 0.25s ease-out; transform: scale(0.90); }
 }
-
 @media (max-width: 340px) {
-  .cards-wrapper {
-    transition: transform 0.25s ease-out;
-    transform: scale(0.85);
-  }
+  .cards-wrapper { transition: transform 0.25s ease-out; transform: scale(0.85); }
 }
-
 @media (max-width: 320px) {
-  .cards-wrapper {
-    transition: transform 0.25s ease-out;
-    transform: scale(0.80);
-  }
+  .cards-wrapper { transition: transform 0.25s ease-out; transform: scale(0.80); }
 }
 
 @media (min-width: 769px) {
@@ -433,15 +494,19 @@ body {
 .settings-btn { background: none; color: rgba(255,255,255,0.7); cursor: pointer; transition: color 0.3s, transform 0.3s; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 100%; }
 .settings-btn:hover { color: #fff; background: rgba(255,255,255,0.1); transform: rotate(45deg); }
 
-/* Settings fully handles its own background blur, cleanly isolating the effect */
 .settings-overlay {
   position: fixed; inset: 0; z-index: 999;
   background: rgba(0, 0, 0, 0.45); 
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center;
-  pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
+  pointer-events: none; 
+  opacity: 0; filter: blur(12px); /* Ditambah blur */
+  transition: opacity 0.35s ease, filter 0.35s ease; /* Ditambah transisi filter */
 }
-.settings-overlay.active { pointer-events: all; opacity: 1; }
+.settings-overlay.active { 
+  pointer-events: all; 
+  opacity: 1; filter: blur(0); 
+}
 .settings-content-wrap.anim-in {
   animation: settingsFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -453,8 +518,8 @@ body {
    background: transparent !important;
    backdrop-filter: none; -webkit-backdrop-filter: none;
    border-radius: 0; border: none; padding: 24px;
- }
-.settings-overlay.active .settings-card { transform: translateY(0) scale(1); }
+}
+.settings-overlay.active .settings-card { transform: none; }
 
 .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
 .settings-header .card-title { font-size: 20px; color: #fff; margin: 0; font-weight: 600; }
@@ -463,14 +528,110 @@ body {
 
 .setting-item { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .setting-item label { font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 500; }
-.settings-select {
-  background: rgba(255,255,255,0.12); color: #fff; border-radius: 12px;
-  padding: 10px 14px; font-family: inherit; font-size: 14px;
-  appearance: none; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+
+.custom-select {
+  position: relative;
+  width: 100%;
+  user-select: none;
+  z-index: 1;
+}
+.custom-select.open {
+  z-index: 999;
+}
+
+.select-trigger {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  outline: none;
   transition: background 0.3s;
 }
-.settings-select:focus { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
-.settings-select option { background: #1a2a40; color: #fff; }
+.select-trigger:hover, .custom-select.open .select-trigger {
+  background: rgba(255,255,255,0.18);
+}
+.select-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+.custom-select.open .select-arrow {
+  transform: rotate(180deg);
+}
+
+.select-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgba(60, 75, 95, 1);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  filter: blur(8px); /* Ditambah blur */
+  
+  /* Ditambah filter pada transition */
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), filter 0.3s ease;
+}
+
+.custom-select.open .select-options {
+  opacity: 1;
+  visibility: visible;
+  transform: none; 
+  filter: blur(0); /* Ditambah blur 0 */
+}
+
+.select-option {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  
+  filter: blur(6px);
+  transform: scale(0.95);
+  transition: background 0.2s, color 0.2s, filter 0.35s ease, transform 0.35s ease;
+}
+
+.custom-select.open .select-option {
+  filter: none;
+  transform: none;
+}
+
+.select-option:first-child {
+  border-top-left-radius: 11px;
+  border-top-right-radius: 11px;
+}
+.select-option:last-child {
+  border-bottom-left-radius: 11px;
+  border-bottom-right-radius: 11px;
+}
+
+.select-option:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+.select-option.selected {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  font-weight: 600;
+}
+
+/* Blur background when settings open — reliable across all Electron versions */
+.settings-open .app-body {
+  filter: blur(16px);
+  transition: filter 0.35s ease;
+}
 
 .settings-btn-action {
   background: rgba(255,255,255,0.15); color: #fff; border-radius: 12px;
@@ -479,16 +640,31 @@ body {
   border: 1px solid rgba(255,255,255,0.1);
 }
 .settings-btn-action:hover { background: rgba(255,255,255,0.25); }
-.loc-status { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 6px; font-weight: 500; }
 
-.settings-content-wrap {
-  width: 100%;
+.loc-status { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 6px; font-weight: 500; }
+.settings-content-wrap { width: 100%; }
+#btnCheckLocText { display: inline-block; transition: opacity 0.3s ease, filter 0.3s ease; }
+#btnCheckLocText.changing { opacity: 0.25; filter: blur(5px); }
+
+.settings-body { transition: opacity 0.2s ease; }
+.settings-body.lang-transitioning * {
+  opacity: 0;
+  filter: blur(8px);
+  transition: opacity 0.25s ease, filter 0.25s ease;
 }
-#btnCheckLocText {
-  display: inline-block;
-  transition: opacity 0.3s ease, filter 0.3s ease;
+
+@property --bg-grad-top {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1359C5;
 }
-#btnCheckLocText.changing {
-  opacity: 0.25;
-  filter: blur(5px);
+@property --bg-grad-top {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1359C5;
+}
+@property --bg-grad-bot {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #7EB9F1;
 }
