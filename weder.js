@@ -4,9 +4,6 @@ let appSettings = JSON.parse(localStorage.getItem('wx_settings') || '{"lang":"id
 let _pendingHighlightAnim = false;
 let _currentLoadSession = 0; // Anti-spam token
 
-// Fire when document layers settle
-window.addEventListener('DOMContentLoaded', syncDeviceThemeTags);
-
 // Function to update static UI labels dynamically
 function updateStaticLabels() {
   const en = appSettings.lang === 'en';
