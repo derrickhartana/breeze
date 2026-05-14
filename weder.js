@@ -4,19 +4,19 @@ let appSettings = JSON.parse(localStorage.getItem('wx_settings') || '{"lang":"id
 let _pendingHighlightAnim = false;
 let _currentLoadSession = 0; // Anti-spam token
 
-function applyTheme(code, rain) {
-  const [top, bot, cardBg, cardTxt, cardSub] = weatherTheme(code, rain);
-  const r = document.documentElement.style;
-  r.setProperty('--bg-grad-top', top);
-  r.setProperty('--bg-grad-bot', bot);
-  r.setProperty('--card-bg', cardBg);
-  r.setProperty('--card-text', cardTxt);
-  r.setProperty('--card-subtext', cardSub);
+function syncDeviceThemeTags() {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const gradTopValue = rootStyles.getPropertyValue('--bg-grad-top').trim();
   
-  // Tambah ini:
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.setAttribute('content', top);
+  const metaTag = document.getElementById('native-theme-meta');
+  if (metaTag && gradTopValue) {
+    // Sets the browser frame block to precisely match the top of your gradient
+    metaTag.setAttribute('content', gradTopValue);
+  }
 }
+
+// Fire when document layers settle
+window.addEventListener('DOMContentLoaded', syncDeviceThemeTags);
 
 // Function to update static UI labels dynamically
 function updateStaticLabels() {
